@@ -1,0 +1,1 @@
+-- Seed file kept intentionally small. Plan limits are versioned in migrations.

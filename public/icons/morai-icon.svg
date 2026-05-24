@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Meus Condomínios">
+  <rect width="512" height="512" rx="112" fill="#7C5C3E"/>
+  <path fill="#F5EFE6" d="M128 230c0-24 12-46 32-59l74-48c13-8 30-8 43 0l75 48c20 13 32 35 32 59v118c0 25-20 45-45 45h-52v-96c0-17-14-31-31-31s-31 14-31 31v96h-52c-25 0-45-20-45-45V230Z"/>
+  <path fill="#FFFFFF" d="M181 221c0-9 7-16 16-16h118c9 0 16 7 16 16s-7 16-16 16H197c-9 0-16-7-16-16Z" opacity=".9"/>
+</svg>
