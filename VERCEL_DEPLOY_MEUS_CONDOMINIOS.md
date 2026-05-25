@@ -16,8 +16,8 @@
 Use inicialmente:
 
 ```env
-NEXT_PUBLIC_APP_URL=https://meuscondominios.vercel.app
-ADMIN_ALLOWED_HOSTS=meuscondominios.vercel.app
+NEXT_PUBLIC_APP_URL=https://meuscondominios.site
+ADMIN_ALLOWED_HOSTS=meuscondominios.site,www.meuscondominios.site
 ```
 
 Se a Vercel gerar outro slug, use o slug real exibido no painel.
@@ -25,7 +25,7 @@ Se a Vercel gerar outro slug, use o slug real exibido no painel.
 ## Variáveis públicas
 
 ```env
-NEXT_PUBLIC_APP_URL=https://meuscondominios.vercel.app
+NEXT_PUBLIC_APP_URL=https://meuscondominios.site
 NEXT_PUBLIC_SUPABASE_URL=https://iucxekicwonacgbgsfqm.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_ECONOMY_MODE=true
@@ -48,7 +48,7 @@ ECONOMY_MODE=true
 ```env
 PLATFORM_OWNER_EMAILS=codeflowbr1@gmail.com
 ADMIN_ALLOWED_EMAILS=codeflowbr1@gmail.com
-ADMIN_ALLOWED_HOSTS=meuscondominios.vercel.app
+ADMIN_ALLOWED_HOSTS=meuscondominios.site,www.meuscondominios.site
 PLATFORM_ADMIN_REQUIRE_2FA=true
 ADMIN_REQUIRE_MFA=true
 ```
@@ -59,12 +59,12 @@ Em Authentication > URL Configuration:
 
 ```text
 Site URL:
-https://meuscondominios.vercel.app
+https://meuscondominios.site
 
 Redirect URLs:
-https://meuscondominios.vercel.app/auth/callback
-https://meuscondominios.vercel.app/app
-https://meuscondominios.vercel.app/app/novo-condominio
+https://meuscondominios.site/auth/callback
+https://meuscondominios.site/app
+https://meuscondominios.site/app/novo-condominio
 ```
 
 Depois, quando comprar o domínio, adicione as mesmas rotas com o domínio próprio.

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   description:
     "SaaS simples, seguro e moderno para gestão de condomínios, moradores, guarita, convites e permissões.",
-  metadataBase: new URL("https://meus-condominios.vercel.app"),
+  metadataBase: new URL("https://meuscondominios.site"),
   applicationName: "Meus Condomínios",
   appleWebApp: {
     capable: true,
