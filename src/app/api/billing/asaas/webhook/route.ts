@@ -27,21 +27,25 @@ function metadataOf(value: unknown): Record<string, unknown> {
 
 function subscriptionPatch(event: string) {
   if (paidEvents.has(event)) {
+    const periodEnd = addDays(new Date(), 35).toISOString();
     return {
       status: "active",
-      current_period_end: addDays(new Date(), 35).toISOString(),
+      current_period_end: periodEnd,
+      condominium_status: "active",
     };
   }
 
   if (overdueEvents.has(event)) {
     return {
       status: "past_due",
+      condominium_status: "past_due",
     };
   }
 
   if (failedEvents.has(event)) {
     return {
       status: "past_due",
+      condominium_status: "past_due",
     };
   }
 
@@ -49,6 +53,7 @@ function subscriptionPatch(event: string) {
     return {
       status: "canceled",
       current_period_end: new Date().toISOString(),
+      condominium_status: "canceled",
     };
   }
 
@@ -91,10 +96,11 @@ export async function POST(request: NextRequest) {
 
     const patch = subscriptionPatch(event);
     if (subscriptionId && patch) {
+      const { condominium_status: condominiumStatus, ...subscriptionUpdate } = patch;
       await adminSupabase
         .from("subscriptions")
         .update({
-          ...patch,
+          ...subscriptionUpdate,
           plan: "premium",
           provider: "asaas",
           provider_subscription_id: providerSubscriptionId,
@@ -106,6 +112,19 @@ export async function POST(request: NextRequest) {
           },
         })
         .eq("id", subscriptionId);
+
+      if (userId) {
+        const condoPatch = {
+          ...(paidEvents.has(event) ? { plan: "premium" } : {}),
+          subscription_status: condominiumStatus,
+        };
+
+        await adminSupabase
+          .from("condominiums")
+          .update(condoPatch)
+          .eq("owner_user_id", userId)
+          .not("subscription_status", "in", "(canceled,blocked,pending_deletion)");
+      }
     }
   }
 

@@ -1,10 +1,14 @@
 "use client";
 
 import { Download, MonitorSmartphone, Smartphone } from "lucide-react";
-import { useMemo } from "react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
 
 function getDeviceHint() {
   if (typeof navigator === "undefined") return "generic";
@@ -17,12 +21,34 @@ function getDeviceHint() {
 export function InstallMobileCard() {
   const device = useMemo(() => getDeviceHint(), []);
   const [open, setOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const steps =
     device === "ios"
       ? ["Abra pelo Safari.", "Toque em Compartilhar.", "Escolha Adicionar à Tela de Início."]
       : device === "android"
         ? ["Abra pelo Chrome.", "Toque no menu de três pontos.", "Escolha Instalar app ou Adicionar à tela inicial."]
         : ["Abra o site no celular.", "Use Safari no iPhone ou Chrome no Android.", "Adicione à tela inicial para entrar como app."];
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
+  async function installApp() {
+    if (!installPrompt) {
+      setOpen(true);
+      return;
+    }
+
+    await installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => null);
+    setInstallPrompt(null);
+  }
 
   return (
     <Card className="overflow-hidden p-0">
@@ -51,12 +77,22 @@ export function InstallMobileCard() {
           </ol>
           <Button
             className="mt-5 w-full sm:w-auto"
-            variant="outline"
+            variant={installPrompt ? "default" : "outline"}
             type="button"
-            onClick={() => setOpen((current) => !current)}
+            onClick={installPrompt ? installApp : () => setOpen((current) => !current)}
           >
-            {open ? "Fechar passo a passo" : "Abrir passo a passo"}
+            {installPrompt ? "Instalar agora" : open ? "Fechar passo a passo" : "Abrir passo a passo"}
           </Button>
+          {installPrompt ? (
+            <Button
+              className="mt-5 w-full sm:ml-2 sm:w-auto"
+              variant="outline"
+              type="button"
+              onClick={() => setOpen((current) => !current)}
+            >
+              Ver passo a passo
+            </Button>
+          ) : null}
           {open ? (
             <div className="mt-5 rounded-lg border bg-background p-4 text-sm leading-6">
               <p className="font-semibold">Depois de instalar</p>

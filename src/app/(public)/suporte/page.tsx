@@ -33,8 +33,9 @@ export default function PublicSupportPage() {
             <div className="flex gap-3">
               <HelpCircle className="mt-0.5 h-5 w-5 text-primary" />
               <p className="text-sm leading-6 text-muted-foreground">
-                Ainda não há SLA público definido. Os retornos dependem da
-                análise e do volume de chamados.
+                Atendimento por e-mail e chamados. Pedidos críticos de acesso,
+                cobrança e segurança recebem prioridade; os demais são respondidos
+                conforme ordem de chegada e informações enviadas.
               </p>
             </div>
             <a

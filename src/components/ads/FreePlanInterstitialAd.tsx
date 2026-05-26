@@ -38,14 +38,20 @@ export function FreePlanInterstitialAd({ plan }: { plan?: string | null }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="w-[min(94vw,900px)] sm:max-w-[900px]">
         <DialogHeader>
           <DialogTitle>Publicidade</DialogTitle>
           <DialogDescription>
-            Este anuncio ajuda a manter o plano gratis sem ocupar espaco fixo no painel.
+            Este anúncio ajuda a manter o plano grátis sem ocupar espaço fixo no painel.
           </DialogDescription>
         </DialogHeader>
-        <AdSenseSlot plan={plan} pathname={pathname} label="Anuncio" />
+        <AdSenseSlot
+          plan={plan}
+          pathname={pathname}
+          label="Anúncio"
+          className="min-h-[420px]"
+          adClassName="min-h-[360px]"
+        />
         <div className="flex justify-end">
           <Button type="button" onClick={() => setOpen(false)}>
             Continuar

@@ -87,6 +87,7 @@ export default async function InvitePage({
               : undefined
           }
           emailVerified={Boolean(user?.email_confirmed_at)}
+          inviteType={invite.invite_type === "owner" ? "owner" : "resident"}
           apartments={(apartments ?? []) as never}
         />
       </section>

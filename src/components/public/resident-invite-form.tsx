@@ -33,6 +33,7 @@ export function ResidentInviteForm({
   currentUserEmail,
   currentUserName,
   emailVerified,
+  inviteType,
   apartments,
 }: {
   token: string;
@@ -41,6 +42,7 @@ export function ResidentInviteForm({
   currentUserEmail?: string;
   currentUserName?: string;
   emailVerified?: boolean;
+  inviteType: "resident" | "owner";
   apartments: ApartmentOption[];
 }) {
   const [state, formAction, isPending] = useActionState(
@@ -49,6 +51,7 @@ export function ResidentInviteForm({
   );
   const loggedIn = Boolean(currentUserEmail);
   const fixedEmail = currentUserEmail ?? invitedEmail;
+  const inviteTypeLabel = inviteType === "owner" ? "Proprietário" : "Morador";
 
   if (state.submitted) {
     return (
@@ -78,7 +81,8 @@ export function ResidentInviteForm({
             Você está usando {currentUserEmail}.{" "}
             {emailVerified
               ? "E-mail verificado."
-              : "A confirmação de e-mail fica recomendada para segurança."}
+              : "A confirmação de e-mail fica recomendada para segurança."}{" "}
+            Como esta conta já está conectada, não é necessário criar nova senha.
           </p>
         </div>
       ) : (
@@ -101,6 +105,7 @@ export function ResidentInviteForm({
 
       <form action={formAction} className="mt-6 space-y-4">
         <input type="hidden" name="token" value={token} />
+        <input type="hidden" name="membership_kind" value={inviteType} />
         <div className="space-y-2">
           <Label htmlFor="full_name">Nome completo</Label>
           <Input id="full_name" name="full_name" placeholder="Seu nome completo" defaultValue={currentUserName} />
@@ -149,16 +154,10 @@ export function ResidentInviteForm({
             <FieldError errors={state.fieldErrors?.apartment_id} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="membership_kind">Tipo</Label>
-            <select
-              id="membership_kind"
-              name="membership_kind"
-              className="h-11 w-full rounded-lg border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="resident">Morador</option>
-              <option value="owner">Proprietário</option>
-              <option value="resident_owner">Morador e proprietário</option>
-            </select>
+            <Label>Tipo de cadastro</Label>
+            <div className="flex h-11 items-center rounded-lg border bg-muted px-3 text-sm font-semibold">
+              {inviteTypeLabel}
+            </div>
           </div>
         </div>
         <div className="space-y-3 rounded-lg border bg-muted p-4 text-sm">
@@ -192,25 +191,25 @@ export function ResidentInviteForm({
         </div>
         <label className="flex gap-3 rounded-lg border bg-muted p-4 text-sm">
           <input name="terms" type="checkbox" className="mt-1 accent-[#7C5C3E]" />
-          <span>Aceito os termos de uso.</span>
-        </label>
-        <FieldError errors={state.fieldErrors?.terms} />
-        <label className="flex gap-3 rounded-lg border bg-muted p-4 text-sm">
-          <input name="privacy" type="checkbox" className="mt-1 accent-[#7C5C3E]" />
-          <span>Aceito a política de privacidade.</span>
-        </label>
-        <FieldError errors={state.fieldErrors?.privacy} />
-        <label className="flex gap-3 rounded-lg border bg-muted p-4 text-sm">
-          <input name="acceptable_use" type="checkbox" className="mt-1 accent-[#7C5C3E]" />
+          <input name="privacy" type="hidden" value="on" />
+          <input name="acceptable_use" type="hidden" value="on" />
           <span>
-            Aceito a{" "}
+            Aceito os{" "}
+            <Link className="font-semibold text-primary" href="/termos" target="_blank">
+              termos
+            </Link>
+            , a{" "}
+            <Link className="font-semibold text-primary" href="/privacidade" target="_blank">
+              privacidade
+            </Link>{" "}
+            e a{" "}
             <Link className="font-semibold text-primary" href="/uso-aceitavel" target="_blank">
               política de uso aceitável
             </Link>
             .
           </span>
         </label>
-        <FieldError errors={state.fieldErrors?.acceptable_use} />
+        <FieldError errors={state.fieldErrors?.terms} />
         <Button type="submit" disabled={isPending} className="w-full">
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Enviar cadastro
