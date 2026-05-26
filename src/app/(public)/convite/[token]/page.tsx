@@ -11,6 +11,7 @@ type InvitePublic = {
   condominium_name?: string;
   invite_type?: string;
   email?: string | null;
+  status?: string;
   valid?: boolean;
 };
 
@@ -87,13 +88,19 @@ export default async function InvitePage({
   }
 
   if (!invite.valid) {
+    const used = invite.status === "used";
+
     return (
       <section className="mx-auto max-w-xl px-4 py-16">
         <Card className="p-6">
           <AlertTriangle className="h-8 w-8 text-warning" />
-          <h1 className="mt-5 text-2xl font-semibold">Convite indisponível</h1>
+          <h1 className="mt-5 text-2xl font-semibold">
+            {used ? "Convite já utilizado" : "Convite indisponível"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Este convite expirou, foi revogado ou já foi utilizado.
+            {used
+              ? "Este link já concluiu um cadastro. Para cadastrar outra pessoa, peça um novo convite à administração."
+              : "Este convite expirou, foi revogado ou não está mais disponível."}
           </p>
         </Card>
       </section>

@@ -42,6 +42,9 @@ export default async function InvitesPage({
         .from("invites")
         .select("token,invite_type,role,email,status,created_at,expires_at")
         .eq("condominium_id", condoId)
+        .eq("status", "active")
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(12),
     ]);
@@ -79,7 +82,7 @@ export default async function InvitesPage({
       />
 
       <Card id="convites-recentes" className="p-6">
-        <h2 className="text-xl font-semibold">Convites recentes</h2>
+        <h2 className="text-xl font-semibold">Convites ativos</h2>
         <div className="mt-5 space-y-3">
           {invites?.length ? (
             invites.map((invite) => (
@@ -102,7 +105,7 @@ export default async function InvitesPage({
               </div>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Nenhum convite criado ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhum convite ativo no momento.</p>
           )}
         </div>
       </Card>
