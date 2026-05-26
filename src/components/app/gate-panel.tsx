@@ -3,8 +3,11 @@
 import {
   AlertTriangle,
   Bell,
+  CalendarDays,
+  CheckCircle2,
   ClipboardCheck,
   DoorOpen,
+  History,
   Loader2,
   Package,
   Phone,
@@ -36,19 +39,37 @@ type ApartmentOption = {
 
 type GatePackage = {
   id: string;
+  apartment_id?: string | null;
   recipient_name: string | null;
   description: string | null;
+  status?: string | null;
+  picked_up_by?: string | null;
+  picked_up_at?: string | null;
   created_at: string;
   apartments?: { number: string | null; blocks?: { name: string | null } | null } | null;
 };
 
 type Visitor = {
   id: string;
-  apartment_number: string | null;
+  apartment_id?: string | null;
+  apartment_number?: string | null;
   visitor_name: string | null;
   visitor_phone: string | null;
+  message?: string | null;
   status: string;
   created_at: string;
+  apartments?: { number: string | null; blocks?: { name: string | null } | null } | null;
+};
+
+type GateIncident = {
+  id: string;
+  apartment_id: string | null;
+  title: string | null;
+  description: string | null;
+  status: string | null;
+  severity: string | null;
+  created_at: string;
+  apartments?: { number: string | null; blocks?: { name: string | null } | null } | null;
 };
 
 type Announcement = {
@@ -61,6 +82,7 @@ type Announcement = {
 
 type GateBooking = {
   id: string;
+  apartment_id?: string | null;
   title: string | null;
   start_at: string;
   end_at: string;
@@ -90,7 +112,9 @@ export function GatePanel({
   condoName,
   apartments,
   waitingPackages,
+  packageHistory,
   recentVisitors,
+  recentIncidents,
   announcements,
   canInviteDoorman,
   todayBookings = [],
@@ -99,7 +123,9 @@ export function GatePanel({
   condoName: string;
   apartments: ApartmentOption[];
   waitingPackages: GatePackage[];
+  packageHistory: GatePackage[];
   recentVisitors: Visitor[];
+  recentIncidents: GateIncident[];
   announcements: Announcement[];
   canInviteDoorman: boolean;
   todayBookings?: GateBooking[];
@@ -125,6 +151,51 @@ export function GatePanel({
     idle,
   );
   const [selectedApartmentId, setSelectedApartmentId] = useState(apartments[0]?.id ?? "");
+  const selectedApartment = apartments.find((apartment) => apartment.id === selectedApartmentId);
+  const selectedApartmentLabel = selectedApartment
+    ? `${selectedApartment.blocks?.name ?? "Bloco"} - ${selectedApartment.number}`
+    : "Nenhum apartamento selecionado";
+  const selectedBookings = todayBookings.filter(
+    (booking) => !booking.apartment_id || booking.apartment_id === selectedApartmentId,
+  );
+  const selectedWaitingPackages = waitingPackages.filter(
+    (item) => !selectedApartmentId || item.apartment_id === selectedApartmentId,
+  );
+  const selectedVisitors = recentVisitors.filter(
+    (visitor) => !selectedApartmentId || visitor.apartment_id === selectedApartmentId,
+  );
+  const selectedPackageHistory = packageHistory.filter(
+    (item) => !selectedApartmentId || item.apartment_id === selectedApartmentId,
+  );
+  const selectedIncidents = recentIncidents.filter(
+    (incident) => !selectedApartmentId || incident.apartment_id === selectedApartmentId,
+  );
+  const historyRows = [
+    ...selectedPackageHistory.map((item) => ({
+      id: `package-${item.id}`,
+      type: "Encomenda",
+      title: item.recipient_name ?? "Encomenda registrada",
+      detail: item.description ?? (item.status === "picked_up" ? "Retirada" : "Aguardando retirada"),
+      status: item.status ?? "waiting",
+      created_at: item.created_at,
+    })),
+    ...selectedVisitors.map((visitor) => ({
+      id: `visitor-${visitor.id}`,
+      type: "Visitante",
+      title: visitor.visitor_name ?? "Visitante registrado",
+      detail: visitor.message ?? "Solicitação de contato registrada",
+      status: visitor.status,
+      created_at: visitor.created_at,
+    })),
+    ...selectedIncidents.map((incident) => ({
+      id: `incident-${incident.id}`,
+      type: "Ocorrência",
+      title: incident.title ?? "Ocorrência registrada",
+      detail: incident.description ?? "Sem descrição",
+      status: incident.status ?? "open",
+      created_at: incident.created_at,
+    })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
     <div className="space-y-6">
@@ -209,8 +280,18 @@ export function GatePanel({
         ) : null}
       </div>
 
-      <Card className="p-5">
-        <Label htmlFor="shared-apartment">Apartamento para novos registros</Label>
+      <Card className="border-primary/35 bg-primary/5 p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase text-primary">Apartamento em atendimento</p>
+            <h2 className="mt-1 text-2xl font-semibold">{selectedApartmentLabel}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Encomenda, visitante e ocorrência serão vinculados a esta unidade.
+            </p>
+          </div>
+          <CheckCircle2 className="h-7 w-7 text-primary" />
+        </div>
+        <Label htmlFor="shared-apartment" className="mt-5 block">Trocar apartamento</Label>
         <select
           id="shared-apartment"
           value={selectedApartmentId}
@@ -228,11 +309,11 @@ export function GatePanel({
       <Card className="p-5">
         <div className="flex items-center gap-3">
           <Bell className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Agenda de hoje</h2>
+          <h2 className="text-lg font-semibold">Agenda de hoje da unidade</h2>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {todayBookings.length ? (
-            todayBookings.map((booking) => (
+          {selectedBookings.length ? (
+            selectedBookings.map((booking) => (
               <div key={booking.id} className="rounded-lg border bg-muted p-4">
                 <StatusBadge tone={booking.status === "approved" ? "success" : "warning"}>
                   {booking.status === "approved" ? "Aprovado" : "Pendente"}
@@ -255,7 +336,7 @@ export function GatePanel({
             ))
           ) : (
             <p className="text-sm text-muted-foreground">
-              Nenhuma reserva prevista para hoje.
+              Nenhuma reserva prevista para hoje neste apartamento.
             </p>
           )}
         </div>
@@ -320,8 +401,8 @@ export function GatePanel({
         <Card className="p-5">
           <h2 className="text-lg font-semibold">Encomendas aguardando retirada</h2>
           <div className="mt-4 space-y-3">
-            {waitingPackages.length ? (
-              waitingPackages.map((item) => (
+            {selectedWaitingPackages.length ? (
+              selectedWaitingPackages.map((item) => (
                 <div key={item.id} className="rounded-lg border bg-muted p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -345,7 +426,7 @@ export function GatePanel({
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">Nenhuma encomenda aguardando.</p>
+              <p className="text-sm text-muted-foreground">Nenhuma encomenda aguardando para esta unidade.</p>
             )}
           </div>
         </Card>
@@ -353,18 +434,18 @@ export function GatePanel({
         <Card className="p-5">
           <h2 className="text-lg font-semibold">Visitantes recentes</h2>
           <div className="mt-4 space-y-3">
-            {recentVisitors.length ? (
-              recentVisitors.map((visitor) => (
+            {selectedVisitors.length ? (
+              selectedVisitors.slice(0, 6).map((visitor) => (
                 <div key={visitor.id} className="rounded-lg border bg-muted p-4">
                   <p className="font-semibold">{visitor.visitor_name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Apartamento {visitor.apartment_number ?? "não informado"}
+                    {visitor.apartments?.blocks?.name ?? "Bloco"} - {visitor.apartments?.number ?? visitor.apartment_number ?? "não informado"}
                   </p>
                   <StatusBadge>{visitor.status}</StatusBadge>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">Nenhum visitante recente.</p>
+              <p className="text-sm text-muted-foreground">Nenhum visitante recente nesta unidade.</p>
             )}
           </div>
         </Card>
@@ -393,6 +474,48 @@ export function GatePanel({
           </div>
         </Card>
       </div>
+
+      <Card className="p-5">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <History className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-lg font-semibold">Histórico da guarita</h2>
+              <p className="text-sm text-muted-foreground">
+                Registros dos últimos 3 meses para {selectedApartmentLabel}. O painel diário reinicia a cada data.
+              </p>
+            </div>
+          </div>
+          <StatusBadge tone="warning">90 dias</StatusBadge>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {historyRows.length ? (
+            historyRows.slice(0, 12).map((row) => (
+              <div key={row.id} className="rounded-lg border bg-muted p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase text-primary">{row.type}</p>
+                  <StatusBadge>{row.status}</StatusBadge>
+                </div>
+                <p className="mt-2 font-semibold">{row.title}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{row.detail}</p>
+                <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {new Date(row.created_at).toLocaleString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nenhum registro encontrado para esta unidade nos últimos 3 meses.
+            </p>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

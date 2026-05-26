@@ -12,7 +12,12 @@ type MembershipRow = {
   user_id: string | null;
   role: "resident" | "owner";
   status: string;
-  profiles?: { id?: string | null; full_name?: string | null; email?: string | null; phone?: string | null } | null;
+  profiles?: {
+    id?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  } | null;
   apartments?: {
     number?: string | null;
     blocks?: { name?: string | null } | null;
@@ -25,59 +30,67 @@ type OptInRow = {
   opted_in: boolean | null;
 };
 
-function getWhatsAppStatus(membership: MembershipRow, optIn?: OptInRow) {
+function getContactLabel(
+  membership: MembershipRow,
+  optIn?: OptInRow,
+  phoneVisible = false,
+) {
   const phone = optIn?.phone ?? membership.profiles?.phone;
-  if (!phone) return "telefone ausente";
-  return optIn?.opted_in ? "opt-in ativo" : "opt-out";
+  if (!phone) return "Telefone não informado";
+  return phoneVisible ? phone : "Telefone oculto pelo morador";
 }
 
 function ResidentCard({
   condoId,
   membership,
-  phoneVisible,
-  whatsappStatus,
+  contactLabel,
   pending,
 }: {
   condoId: string;
   membership: MembershipRow;
-  phoneVisible: boolean;
-  whatsappStatus: string;
+  contactLabel: string;
   pending?: boolean;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="rounded-lg border bg-card p-4 transition hover:border-primary/50 hover:shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
             <RoleBadge role={membership.role} />
             <StatusBadge tone={pending ? "warning" : "success"}>
               {pending ? "Pendente" : "Ativo"}
             </StatusBadge>
           </div>
-          <p className="mt-3 font-semibold">
+          <p className="mt-3 text-lg font-semibold">
             {membership.profiles?.full_name ?? "Sem nome"}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {membership.profiles?.email ?? "E-mail não informado"}
-            {" · "}
-            {phoneVisible ? membership.profiles?.phone ?? "Telefone não informado" : "Telefone oculto"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {membership.apartments?.blocks?.name ?? "Bloco"} - {membership.apartments?.number ?? "Apartamento"}
-          </p>
-          <p className="mt-2 text-xs font-medium text-muted-foreground">
-            WhatsApp: {whatsappStatus}
+          <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+            <p>
+              <span className="font-medium text-foreground">Bloco:</span>{" "}
+              {membership.apartments?.blocks?.name ?? "Não informado"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Apartamento:</span>{" "}
+              {membership.apartments?.number ?? "Não informado"}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Contato:</span>{" "}
+              {contactLabel}
+            </p>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            E-mail: {membership.profiles?.email ?? "não informado"}
           </p>
         </div>
         {pending ? (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <form action={reviewResidentMembershipAction}>
               <input type="hidden" name="condominium_id" value={condoId} />
               <input type="hidden" name="membership_id" value={membership.id} />
               <input type="hidden" name="decision" value="approve" />
               <Button type="submit" size="sm">
                 <Check className="h-4 w-4" />
-                Aprovar este cadastro
+                Aprovar
               </Button>
             </form>
             <form action={reviewResidentMembershipAction}>
@@ -139,8 +152,8 @@ export default async function ResidentsPage({
       <Card className="p-6">
         <h1 className="text-xl font-semibold">Acesso limitado</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Seu perfil nao tem permissao para ver cadastros de moradores neste
-          condominio.
+          Seu perfil não tem permissão para ver cadastros de moradores neste
+          condomínio.
         </p>
       </Card>
     );
@@ -166,7 +179,7 @@ export default async function ResidentsPage({
   const rows = (memberships ?? []) as unknown as MembershipRow[];
   const userIds = rows.map((row) => row.user_id).filter(Boolean) as string[];
   const { data: optIns } = userIds.length
-      ? await supabase
+    ? await supabase
         .from("whatsapp_opt_ins")
         .select("user_id, phone, opted_in")
         .eq("condominium_id", condoId)
@@ -187,9 +200,8 @@ export default async function ResidentsPage({
           <p className="text-sm font-semibold text-primary">{condo?.name}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-normal">Moradores</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Aprove cadastros pendentes olhando quem solicitou, o apartamento e o
-            status geral de WhatsApp. Telefones completos só aparecem para quem
-            tem permissão.
+            Veja nome, bloco, apartamento e contato permitido pelo morador.
+            Dados sensíveis ficam ocultos quando não houver permissão.
           </p>
         </div>
         <Button asChild>
@@ -206,8 +218,11 @@ export default async function ResidentsPage({
                 key={membership.id}
                 condoId={condoId}
                 membership={membership}
-                phoneVisible={phoneVisible}
-                whatsappStatus={getWhatsAppStatus(membership, optInByUser.get(membership.user_id ?? ""))}
+                contactLabel={getContactLabel(
+                  membership,
+                  optInByUser.get(membership.user_id ?? ""),
+                  phoneVisible,
+                )}
                 pending
               />
             ))
@@ -226,8 +241,11 @@ export default async function ResidentsPage({
                 key={membership.id}
                 condoId={condoId}
                 membership={membership}
-                phoneVisible={phoneVisible}
-                whatsappStatus={getWhatsAppStatus(membership, optInByUser.get(membership.user_id ?? ""))}
+                contactLabel={getContactLabel(
+                  membership,
+                  optInByUser.get(membership.user_id ?? ""),
+                  phoneVisible,
+                )}
               />
             ))
           ) : (

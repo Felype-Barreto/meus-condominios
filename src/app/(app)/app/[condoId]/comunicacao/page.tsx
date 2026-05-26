@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { AlertTriangle, BellRing, Layers3, MessageCircle, Plus, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  BellRing,
+  Layers3,
+  LockKeyhole,
+  MessageCircle,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import { CommunicationDispatchForm } from "@/components/app/communication-forms";
 import { CommunicationNav } from "@/components/app/communication-nav";
 import { UpgradeBanner } from "@/components/app/upgrade-banner";
@@ -68,7 +76,9 @@ export default async function CommunicationPage({
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-semibold text-primary">{condo?.name}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal">Central de Comunicação</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+            Central de Comunicação
+          </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Publique avisos no app, prepare WhatsApp manual e organize canais sem expor dados sensíveis.
           </p>
@@ -89,7 +99,7 @@ export default async function CommunicationPage({
         <UpgradeBanner
           condoId={condoId}
           title="Templates e canais avançados estão nos planos pagos"
-          description="No plano grátis, use um canal WhatsApp manual e compartilhe mensagens sem envio automático."
+          description="No plano grátis, use Avisos e WhatsApp manual sem envio automático."
         />
       ) : null}
 
@@ -99,7 +109,7 @@ export default async function CommunicationPage({
           <div>
             <p className="font-semibold">WhatsApp oficial não configurado</p>
             <p className="mt-1 text-sm">
-              Canais oficiais entram em modo manual até configurar a API oficial da Meta.
+              Canais oficiais ficam bloqueados até liberarmos Pro e Total.
             </p>
           </div>
         </Card>
@@ -110,13 +120,11 @@ export default async function CommunicationPage({
           <Layers3 className="h-5 w-5 text-primary" />
           <p className="mt-3 text-sm text-muted-foreground">Canais ativos</p>
           <strong className="mt-1 block text-3xl font-semibold">{channelRows.length}</strong>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Limite do plano: {limits.max_channels}
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">Limite do plano: {limits.max_channels}</p>
         </Card>
         <Card className="p-5">
           <MessageCircle className="h-5 w-5 text-primary" />
-          <p className="mt-3 text-sm text-muted-foreground">WhatsApp restante</p>
+          <p className="mt-3 text-sm text-muted-foreground">WhatsApp manual</p>
           <strong className="mt-1 block text-3xl font-semibold">{whatsUsage.remaining}</strong>
           <p className="mt-2 text-xs text-muted-foreground">{whatsUsage.percent}% usado</p>
         </Card>
@@ -140,21 +148,31 @@ export default async function CommunicationPage({
         {advancedCommunicationEnabled ? (
           <CommunicationDispatchForm condoId={condoId} channels={channelRows} />
         ) : (
-          <Card className="p-5">
-            <h2 className="text-lg font-semibold">Comunicação por canais</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              No seu plano atual, use a aba Avisos para publicar no app e copiar a mensagem pronta para WhatsApp manual.
-              Disparos por canais, grupos e automações entram nos planos Pro e Total.
-            </p>
-            <div className="mt-4 rounded-lg border bg-muted p-4 text-sm">
-              <p className="font-semibold">Disponivel no futuro</p>
-              <p className="mt-1 text-muted-foreground">
-                Seletor de canais, grupos WhatsApp oficiais e envio segmentado ficarão bloqueados ate liberarmos Pro/Total.
+          <Card className="relative min-h-80 overflow-hidden p-5">
+            <div className="pointer-events-none select-none blur-[2px] opacity-45">
+              <h2 className="text-lg font-semibold">Comunicação por canais</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Selecione canais, grupos e apartamentos para enviar comunicados segmentados.
               </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border bg-muted p-4">Grupo WhatsApp oficial</div>
+                <div className="rounded-lg border bg-muted p-4">Moradores selecionados</div>
+                <div className="rounded-lg border bg-muted p-4">Relatório de leitura</div>
+                <div className="rounded-lg border bg-muted p-4">Automação de envio</div>
+              </div>
             </div>
-            <Button asChild className="mt-4" variant="outline">
-              <Link href={`/app/${condoId}/comunicados`}>Ir para Avisos</Link>
-            </Button>
+            <div className="absolute inset-0 flex items-center justify-center bg-background/60 p-6 backdrop-blur-[1px]">
+              <div className="max-w-sm rounded-lg border bg-card p-5 text-center shadow-lg">
+                <LockKeyhole className="mx-auto h-8 w-8 text-primary" />
+                <h2 className="mt-3 text-lg font-semibold">Bloqueado para Pro e Total</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No Free e Premium, use Avisos e WhatsApp manual. Disparos automáticos e canais oficiais ficam para os planos Pro e Total.
+                </p>
+                <Button asChild className="mt-4" variant="outline">
+                  <Link href={`/app/${condoId}/comunicados`}>Ir para Avisos</Link>
+                </Button>
+              </div>
+            </div>
           </Card>
         )}
 
@@ -162,7 +180,7 @@ export default async function CommunicationPage({
           <Card className="p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Canais ativos</h2>
-              <Button asChild size="sm" variant="outline">
+              <Button asChild size="sm" variant="outline" disabled={!advancedCommunicationEnabled}>
                 <Link href={`/app/${condoId}/comunicacao/canais`}>
                   <Plus className="h-4 w-4" />
                   Canal
@@ -188,7 +206,7 @@ export default async function CommunicationPage({
                 <EmptyState
                   icon={Layers3}
                   title="Nenhum canal criado"
-                  description="Crie um canal para começar. O app Meus Condomínios entra automaticamente nos disparos."
+                  description="Canais oficiais ficam bloqueados enquanto Pro e Total não forem liberados."
                 />
               )}
             </div>

@@ -31,7 +31,7 @@ export type AsaasWebhookPayload = {
 };
 
 function getAsaasApiKey() {
-  const apiKey = process.env.ASAAS_API_KEY;
+  const apiKey = process.env.ASAAS_API_KEY?.trim().split(/\s+/)[0];
   if (!apiKey) {
     throw new Error("Asaas API key não configurada.");
   }
@@ -72,8 +72,8 @@ async function asaasRequest<T>(path: string, init: RequestInit) {
 }
 
 export function isValidAsaasWebhookToken(token: string | null) {
-  const expected = process.env.ASAAS_WEBHOOK_TOKEN;
-  return Boolean(expected && token && token === expected);
+  const expected = process.env.ASAAS_WEBHOOK_TOKEN?.trim();
+  return Boolean(expected && token && token.trim() === expected);
 }
 
 export async function createAsaasCustomer(input: {
