@@ -174,7 +174,7 @@ export function SidebarContent({
           "flex h-16 shrink-0 items-center gap-3 border-b",
           rail
             ? "justify-center px-3 group-hover/sidebar:justify-start group-hover/sidebar:px-5 group-focus-within/sidebar:justify-start group-focus-within/sidebar:px-5"
-            : "px-6",
+            : "px-5 pr-14",
         )}
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-[#7C5C3E]/20">
@@ -194,7 +194,7 @@ export function SidebarContent({
 
       <nav
         className={cn(
-          "flex-1 space-y-1 overflow-y-auto",
+          "min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain",
           rail ? "p-2 group-hover/sidebar:p-4 group-focus-within/sidebar:p-4" : "p-4",
         )}
       >
@@ -221,18 +221,18 @@ export function SidebarContent({
 
       <div
         className={cn(
-          "space-y-1 border-t",
+          "shrink-0 space-y-1 border-t",
           rail ? "p-2 group-hover/sidebar:p-4 group-focus-within/sidebar:p-4" : "p-4",
         )}
       >
         <Link
           href="/app/condominios"
           onClick={onNavigate}
-          title="Condominios"
+          title="Condomínios"
           className={navLinkClass(rail, pathname.startsWith("/app/condominios") || pathname === "/app")}
         >
           <Building2 className="h-4 w-4 shrink-0" />
-          <RailLabel rail={rail}>Condominios</RailLabel>
+          <RailLabel rail={rail}>Condomínios</RailLabel>
         </Link>
         <Link
           href="/app/assinatura"
@@ -246,11 +246,11 @@ export function SidebarContent({
         <Link
           href="/app/configuracoes"
           onClick={onNavigate}
-          title="Configuracoes"
+          title="Configurações"
           className={navLinkClass(rail, pathname.startsWith("/app/configuracoes"))}
         >
           <Settings className="h-4 w-4 shrink-0" />
-          <RailLabel rail={rail}>Configuracoes</RailLabel>
+          <RailLabel rail={rail}>Configurações</RailLabel>
         </Link>
         {isPlatformAdmin ? (
           <Link

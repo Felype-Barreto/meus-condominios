@@ -32,11 +32,11 @@ export function AppShell({
     .join("");
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <div className="flex min-h-screen">
         <Sidebar isPlatformAdmin={isPlatformAdmin} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/92 px-4 backdrop-blur-xl md:px-6">
+          <header className="sticky top-0 z-40 flex h-16 items-center gap-2 border-b bg-background/94 px-3 backdrop-blur-xl sm:gap-3 sm:px-4 md:px-6">
             <MobileDrawer isPlatformAdmin={isPlatformAdmin} />
             <Link
               href="/"
@@ -45,9 +45,9 @@ export function AppShell({
               <Building2 className="h-5 w-5 text-primary" />
               <span>Meus Condomínios</span>
             </Link>
-            <div className="flex items-center gap-2 lg:hidden">
-              <Building2 className="h-5 w-5 text-primary" />
-              <span className="font-semibold">Meus Condomínios</span>
+            <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
+              <Building2 className="h-5 w-5 shrink-0 text-primary" />
+              <span className="truncate font-semibold">Meus Condomínios</span>
             </div>
             <AppGlobalSearch />
             {isPlatformAdmin ? (
@@ -59,28 +59,30 @@ export function AppShell({
               </Button>
             ) : null}
             <NotificationsBell />
-            <ThemeToggle />
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
             <div className="hidden min-w-0 text-right sm:block">
               <p className="truncate text-sm font-semibold">{userName ?? "Minha conta"}</p>
               <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-primary text-center text-sm font-semibold leading-9 text-primary-foreground shadow-sm shadow-[#7C5C3E]/20">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-primary text-center text-sm font-semibold leading-9 text-primary-foreground shadow-sm shadow-[#7C5C3E]/20">
               {initials || "M"}
             </div>
-            <form action={signOutAction}>
+            <form action={signOutAction} className="shrink-0">
               <Button type="submit" variant="outline" size="icon">
                 <LogOut className="h-4 w-4" />
                 <span className="sr-only">Sair da conta</span>
               </Button>
             </form>
           </header>
-          <main className="flex-1 p-4 pb-28 md:p-6 md:pb-28 lg:p-8">
+          <main className="min-w-0 flex-1 p-4 pb-[calc(env(safe-area-inset-bottom)+8rem)] md:p-6 md:pb-28 lg:p-8">
             {!emailConfirmed ? (
               <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                <p className="font-semibold">Confirmacao de e-mail pendente</p>
+                <p className="font-semibold">Confirmação de e-mail pendente</p>
                 <p className="mt-1">
-                  Voce ja pode conhecer o painel. Para proteger a conta e liberar todos os recursos
-                  sensiveis, confirme seu e-mail quando receber a mensagem.
+                  Você já pode conhecer o painel. Para proteger a conta e liberar todos os recursos
+                  sensíveis, confirme seu e-mail quando receber a mensagem.
                 </p>
               </div>
             ) : null}

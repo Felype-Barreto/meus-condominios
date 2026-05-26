@@ -29,10 +29,10 @@ export function MobileQuickAction() {
   return (
     <Link
       href={action.href}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.2rem)] right-4 z-30 inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-[#7C5C3E]/25 active:scale-[0.98] lg:hidden"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.65rem)] right-4 z-30 inline-flex min-h-12 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-[#7C5C3E]/25 active:scale-[0.98] lg:hidden"
     >
-      <action.icon className="h-4 w-4" />
-      {action.label}
+      <action.icon className="h-4 w-4 shrink-0" />
+      <span className="truncate">{action.label}</span>
     </Link>
   );
 }

@@ -65,7 +65,7 @@ export function CookieConsentBanner() {
       <button
         type="button"
         onClick={() => setVisible(true)}
-        className="fixed bottom-4 left-4 z-50 rounded-full border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground shadow-lg hover:text-foreground"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+6rem)] left-3 z-30 rounded-full border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground shadow-lg hover:text-foreground sm:bottom-4 sm:left-4 sm:z-50"
       >
         Cookies
       </button>
@@ -73,7 +73,7 @@ export function CookieConsentBanner() {
   }
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-4xl rounded-lg border bg-card p-4 shadow-xl">
+    <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 mx-auto max-h-[calc(100dvh-7rem)] max-w-4xl overflow-y-auto rounded-lg border bg-card p-4 shadow-xl sm:inset-x-4 sm:bottom-4">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>

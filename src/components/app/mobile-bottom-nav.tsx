@@ -106,7 +106,7 @@ export function MobileBottomNav() {
   if (!condoId || !uuidPattern.test(condoId)) return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.4rem)] pt-2 shadow-[0_-12px_28px_rgba(17,24,39,0.08)] backdrop-blur-xl lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/96 px-2 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-[0_-12px_28px_rgba(17,24,39,0.08)] backdrop-blur-xl lg:hidden">
       <div className="mx-auto grid max-w-md grid-flow-col auto-cols-fr gap-1">
         {items.map((item) => {
           const href = `/app/${condoId}/${item.href}`;
@@ -117,7 +117,7 @@ export function MobileBottomNav() {
               key={`${item.href}-${item.label}`}
               href={href}
               className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-semibold text-muted-foreground active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-[3.65rem] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.67rem] font-semibold text-muted-foreground active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring",
                 active && "bg-muted text-primary",
               )}
             >

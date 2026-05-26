@@ -145,18 +145,18 @@ export function AppGlobalSearch() {
           className="ml-auto hidden h-11 w-full max-w-sm items-center gap-2 rounded-lg border bg-card px-3 text-left text-sm text-muted-foreground shadow-sm md:flex"
         >
           <Search className="h-4 w-4" />
-          Buscar morador, unidade ou condominio
+          Buscar morador, unidade ou condomínio
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Busca rapida</DialogTitle>
+          <DialogTitle>Busca rápida</DialogTitle>
         </DialogHeader>
         <form onSubmit={runSearch} className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={condoId ? "Nome, telefone, e-mail ou apartamento" : "Nome do condominio"}
+            placeholder={condoId ? "Nome, telefone, e-mail ou apartamento" : "Nome do condomínio"}
             autoFocus
           />
           <Button type="submit" disabled={loading}>
