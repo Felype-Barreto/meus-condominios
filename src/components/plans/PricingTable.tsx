@@ -4,11 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { plans } from "@/lib/plans";
 
+function planHref(planId: string) {
+  if (planId === "free") return "/cadastro?next=%2Fapp%2Fnovo-condominio";
+  if (planId === "premium") {
+    return "/entrar?next=%2Fapp%2Fassinatura%2Fcheckout%3Fplano%3Dpremium";
+  }
+  return null;
+}
+
 export function PricingTable() {
   return (
     <div className="grid gap-5 lg:grid-cols-4">
       {Object.values(plans).map((plan) => {
         const comingSoon = plan.id === "pro" || plan.id === "total";
+        const href = planHref(plan.id);
 
         return (
           <Card
@@ -44,15 +53,15 @@ export function PricingTable() {
                 <p className="mt-1 text-sm text-muted-foreground">{plan.annualPrice}</p>
               ) : null}
             </div>
-            {comingSoon ? (
-              <Button className="mt-6 w-full" variant="outline" disabled>
-                Em breve
+            {href ? (
+              <Button asChild className="mt-6 w-full" variant={plan.featured ? "default" : "outline"}>
+                <Link href={href}>
+                  {plan.id === "free" ? "Começar grátis" : "Assinar Premium"}
+                </Link>
               </Button>
             ) : (
-              <Button asChild className="mt-6 w-full" variant={plan.featured ? "default" : "outline"}>
-                <Link href={plan.id === "free" ? "/cadastro" : "/app/assinatura/checkout?plano=premium"}>
-                  {plan.id === "free" ? "Começar grátis" : "Escolher plano"}
-                </Link>
+              <Button className="mt-6 w-full" variant="outline" disabled>
+                Em breve
               </Button>
             )}
             <div className="mt-5 rounded-lg border bg-background p-3 text-sm">

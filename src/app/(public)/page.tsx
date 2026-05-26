@@ -129,6 +129,43 @@ const plans = [
   ["Total", "R$ 249,90/mês", "Recursos avançados, alto volume com limites claros e suporte para operações maiores."],
 ];
 
+const pricingPlans = [
+  {
+    name: "Grátis",
+    price: "R$ 0",
+    description: "Comece com 2 blocos, até 24 apartamentos e compartilhamento manual no WhatsApp.",
+    href: "/cadastro?next=%2Fapp%2Fnovo-condominio",
+    action: "Começar grátis",
+    available: true,
+  },
+  {
+    name: "Premium",
+    price: "R$ 39,90/mês",
+    description: "Mais apartamentos, guarita, permissões por toggle e sem anúncios no painel.",
+    href: "/entrar?next=%2Fapp%2Fassinatura%2Fcheckout%3Fplano%3Dpremium",
+    action: "Assinar Premium",
+    available: true,
+  },
+  {
+    name: "Pro",
+    price: "R$ 99,90/mês",
+    description: "Relatórios, exportação, canais avançados e mais capacidade para condomínios maiores.",
+    href: null,
+    action: "Em breve",
+    available: false,
+  },
+  {
+    name: "Total",
+    price: "R$ 249,90/mês",
+    description: "Recursos avançados, alto volume com limites claros e suporte para operações maiores.",
+    href: null,
+    action: "Em breve",
+    available: false,
+  },
+];
+
+void plans;
+
 const faq = [
   {
     question: "Precisa instalar app?",
@@ -442,13 +479,37 @@ export default function HomePage() {
           </Button>
         </div>
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {plans.map(([name, price, description]) => (
-            <Card key={name} className="p-5">
-              <p className="text-sm font-semibold text-primary">{name}</p>
-              <h3 className="mt-3 text-2xl font-semibold">{price}</h3>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
-            </Card>
-          ))}
+          {pricingPlans.map((plan) => {
+            const content = (
+              <Card className="group h-full p-5 transition duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-[0_18px_46px_rgba(124,92,62,0.16)]">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-semibold text-primary">{plan.name}</p>
+                  {!plan.available ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold text-muted-foreground">
+                      <LockKeyhole className="h-3 w-3" />
+                      Em breve
+                    </span>
+                  ) : null}
+                </div>
+                <h3 className="mt-3 text-2xl font-semibold">{plan.price}</h3>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{plan.description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                  {plan.action}
+                  {plan.available ? <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /> : null}
+                </div>
+              </Card>
+            );
+
+            return plan.href ? (
+              <Link key={plan.name} href={plan.href} className="block focus:outline-none focus:ring-2 focus:ring-primary/40">
+                {content}
+              </Link>
+            ) : (
+              <div key={plan.name} aria-disabled="true" className="opacity-75">
+                {content}
+              </div>
+            );
+          })}
         </div>
       </section>
 

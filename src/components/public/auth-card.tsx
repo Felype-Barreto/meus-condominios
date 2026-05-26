@@ -40,9 +40,27 @@ function friendlyAuthError(message: string) {
   return message || "Não foi possível continuar agora. Revise os dados e tente novamente.";
 }
 
-export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
+function safeNextPath(value: string | null, fallback: string) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+
+  return value;
+}
+
+export function AuthCard({
+  mode,
+  initialNext,
+}: {
+  mode: "signin" | "signup";
+  initialNext?: string | null;
+}) {
   const signup = mode === "signup";
   const router = useRouter();
+  const nextPath = safeNextPath(
+    initialNext ?? null,
+    signup ? "/app/novo-condominio" : "/app",
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +128,7 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
               is_syndic: parsed.data.isSyndic,
               accepted_terms_at: new Date().toISOString(),
             },
-            emailRedirectTo: `${window.location.origin}/app/novo-condominio`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
           },
         });
 
@@ -124,7 +142,7 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
           return;
         }
 
-        router.replace("/app/novo-condominio");
+        router.replace(nextPath);
         router.refresh();
         return;
       }
@@ -145,7 +163,7 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
         return;
       }
 
-      router.replace("/app");
+      router.replace(nextPath);
       router.refresh();
     } finally {
       setLoading(false);
@@ -188,7 +206,7 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
           {signup ? "Cadastre-se e crie seu primeiro condomínio em poucos passos." : "Use seu e-mail e senha para continuar."}
         </p>
         <div className="mt-6">
-          <GoogleAuthButton nextPath={signup ? "/app/novo-condominio" : "/app"} />
+          <GoogleAuthButton nextPath={nextPath} />
         </div>
         <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
@@ -223,7 +241,7 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
                 <span>Eu também serei o síndico deste condomínio por enquanto.</span>
               </label>
 
-              <label className="flex items-start gap-3 rounded-lg border border-[#E7DCCB] bg-white p-3 text-sm leading-6">
+              <label className="flex items-start gap-3 rounded-lg border border-[#E7DCCB] bg-white p-3 text-sm leading-6 text-[#1f1f1f]">
                 <input name="accept_terms" type="checkbox" required className="mt-1 accent-[#7C5C3E]" />
                 <span>
                   Li e aceito os{" "}
@@ -238,7 +256,7 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
                 </span>
               </label>
 
-              <label className="flex items-start gap-3 rounded-lg border border-[#E7DCCB] bg-white p-3 text-sm leading-6">
+              <label className="flex items-start gap-3 rounded-lg border border-[#E7DCCB] bg-white p-3 text-sm leading-6 text-[#1f1f1f]">
                 <input name="accept_acceptable_use" type="checkbox" required className="mt-1 accent-[#7C5C3E]" />
                 <span>
                   Li e aceito a{" "}
@@ -271,7 +289,10 @@ export function AuthCard({ mode }: { mode: "signin" | "signup" }) {
         </form>
         <p className="mt-5 text-center text-sm text-muted-foreground">
           {signup ? "Já tem conta?" : "Ainda não tem conta?"}{" "}
-          <Link className="font-semibold text-primary hover:text-[#5F432C]" href={signup ? "/entrar" : "/cadastro"}>
+          <Link
+            className="font-semibold text-primary hover:text-[#5F432C]"
+            href={`${signup ? "/entrar" : "/cadastro"}?next=${encodeURIComponent(nextPath)}`}
+          >
             {signup ? "Entrar" : "Criar conta"}
           </Link>
         </p>
