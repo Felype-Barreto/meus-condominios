@@ -38,7 +38,7 @@ export function PricingTable() {
             <div className="mt-6">
               <strong className="text-3xl font-semibold">{plan.monthlyPrice}</strong>
               {plan.id !== "free" ? (
-                <span className="text-sm text-muted-foreground">/mes</span>
+                <span className="text-sm text-muted-foreground">/mês</span>
               ) : null}
               {plan.annualPrice ? (
                 <p className="mt-1 text-sm text-muted-foreground">{plan.annualPrice}</p>
@@ -50,15 +50,15 @@ export function PricingTable() {
               </Button>
             ) : (
               <Button asChild className="mt-6 w-full" variant={plan.featured ? "default" : "outline"}>
-                <Link href={plan.id === "free" ? "/cadastro" : "/contato"}>
-                  {plan.id === "free" ? "Comecar gratis" : "Escolher plano"}
+                <Link href={plan.id === "free" ? "/cadastro" : "/app/assinatura/checkout?plano=premium"}>
+                  {plan.id === "free" ? "Começar grátis" : "Escolher plano"}
                 </Link>
               </Button>
             )}
             <div className="mt-5 rounded-lg border bg-background p-3 text-sm">
-              <p className="font-semibold">{plan.limits.condominiums} condominio(s) por conta</p>
+              <p className="font-semibold">{plan.limits.condominiums} condomínio(s) por conta</p>
               <p className="mt-1 text-muted-foreground">
-                {plan.limits.blocks} blocos por condominio, {plan.limits.totalApartments} apartamentos no total.
+                {plan.limits.blocks} blocos por condomínio, {plan.limits.totalApartments} apartamentos no total.
               </p>
             </div>
             <div className="mt-6 space-y-3">

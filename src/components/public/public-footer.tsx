@@ -29,11 +29,7 @@ export function PublicFooter() {
           <h3 className="text-sm font-semibold">Produto</h3>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
             <Link className="hover:text-foreground" href="/recursos">Recursos</Link>
-            <Link className="hover:text-foreground" href="/recursos/agendamentos">Agendamentos</Link>
-            <Link className="hover:text-foreground" href="/recursos/encomendas">Encomendas</Link>
-            <Link className="hover:text-foreground" href="/blog">Blog</Link>
             <Link className="hover:text-foreground" href="/seguranca">Segurança</Link>
-            <Link className="hover:text-foreground" href="/confianca">Confiança</Link>
             <Link className="hover:text-foreground" href="/qr-seguro">QR seguro</Link>
             <Link className="hover:text-foreground" href="/precos">Preços</Link>
             <Link className="hover:text-foreground" href="/suporte">Suporte</Link>
@@ -45,13 +41,9 @@ export function PublicFooter() {
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
             <Link className="hover:text-foreground" href="/privacidade">Privacidade</Link>
             <Link className="hover:text-foreground" href="/termos">Termos</Link>
-            <Link className="hover:text-foreground" href="/seguranca">Segurança</Link>
-            <Link className="hover:text-foreground" href="/uso-aceitavel">Uso aceitável</Link>
-            <Link className="hover:text-foreground" href="/denunciar">Denunciar abuso</Link>
-            <Link className="hover:text-foreground" href="/politica-de-cancelamento">Cancelamento</Link>
             <Link className="hover:text-foreground" href="/cookies">Cookies</Link>
-            <Link className="hover:text-foreground" href="/lgpd">LGPD</Link>
-            <Link className="hover:text-foreground" href="/tratamento-de-dados">Tratamento de dados</Link>
+            <Link className="hover:text-foreground" href="/politica-de-cancelamento">Cancelamento</Link>
+            <Link className="hover:text-foreground" href="/contato">Contato</Link>
           </div>
         </div>
       </div>
