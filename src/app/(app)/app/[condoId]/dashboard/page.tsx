@@ -118,7 +118,7 @@ export default async function DashboardPage({
       .select("id,action,entity_type,created_at")
       .eq("condominium_id", condoId)
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(6),
     getCurrentUsage(condoId).catch(() => ({
       blocks: 0,
       apartments: 0,
@@ -175,12 +175,10 @@ export default async function DashboardPage({
           <p className="text-sm font-semibold text-primary">
             {condo?.name ?? "Condomínio"}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-            O que precisa de atenção hoje
-          </h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-normal">Painel geral</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Um painel direto para decidir, aprovar e manter moradores informados
-            sem procurar em vários lugares.
+            Abertura rápida para moradores, síndico e guarita acompanharem avisos,
+            reservas, encomendas e pendências do dia.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -263,7 +261,10 @@ export default async function DashboardPage({
           pathname={`/app/${condoId}/dashboard`}
           label="Publicidade"
         />
-        <ActivityTimeline items={(activity ?? []) as ActivityRow[]} />
+        <ActivityTimeline
+          items={(activity ?? []) as ActivityRow[]}
+          condoId={condoId}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">

@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   createAsaasCustomer,
-  createAsaasPremiumSubscription,
-  getAsaasSubscriptionPayments,
+  createAsaasPremiumPayment,
 } from "@/lib/billing/asaas";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -37,8 +36,8 @@ export async function startPremiumCheckout(formData: FormData) {
   if (!parsed.success) {
     checkoutError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
-  const checkout = parsed.data;
 
+  const checkout = parsed.data;
   let paymentUrl: string | null = null;
 
   try {
@@ -92,11 +91,7 @@ export async function startPremiumCheckout(formData: FormData) {
         ? metadata.checkout_invoice_url
         : null;
 
-    if (
-      localSubscription.provider_subscription_id &&
-      existingPaymentUrl &&
-      ["paused", "past_due"].includes(localSubscription.status)
-    ) {
+    if (existingPaymentUrl && ["paused", "past_due"].includes(localSubscription.status)) {
       redirect(existingPaymentUrl);
     }
 
@@ -116,20 +111,13 @@ export async function startPremiumCheckout(formData: FormData) {
       customerId = customer.id;
     }
 
-    const asaasSubscription = await createAsaasPremiumSubscription({
+    const asaasPayment = await createAsaasPremiumPayment({
       customerId,
       subscriptionId: localSubscription.id,
       billingType: checkout.billingType,
     });
 
-    const payments = await getAsaasSubscriptionPayments(asaasSubscription.id);
-    const firstPayment = payments.data?.[0];
-    paymentUrl =
-      firstPayment?.invoiceUrl ??
-      firstPayment?.bankSlipUrl ??
-      asaasSubscription.invoiceUrl ??
-      asaasSubscription.bankSlipUrl ??
-      null;
+    paymentUrl = asaasPayment.invoiceUrl ?? asaasPayment.bankSlipUrl ?? null;
 
     await adminSupabase
       .from("subscriptions")
@@ -137,11 +125,10 @@ export async function startPremiumCheckout(formData: FormData) {
         plan: "premium",
         status: "paused",
         provider: "asaas",
-        provider_subscription_id: asaasSubscription.id,
         metadata: {
           ...metadata,
           asaas_customer_id: customerId,
-          checkout_payment_id: firstPayment?.id ?? null,
+          checkout_payment_id: asaasPayment.id,
           checkout_invoice_url: paymentUrl ?? null,
           billing_type: checkout.billingType,
         },
@@ -151,15 +138,14 @@ export async function startPremiumCheckout(formData: FormData) {
     await adminSupabase.from("billing_events").insert({
       condominium_id: null,
       user_id: user.id,
-      event_type: "asaas_subscription_checkout_started",
+      event_type: "asaas_premium_payment_checkout_started",
       provider: "asaas",
       amount_cents: 3990,
       currency: "BRL",
       status: "pending",
       metadata: {
         subscription_id: localSubscription.id,
-        provider_subscription_id: asaasSubscription.id,
-        payment_id: firstPayment?.id ?? null,
+        payment_id: asaasPayment.id,
       },
     });
   } catch (error) {
@@ -175,6 +161,9 @@ export async function startPremiumCheckout(formData: FormData) {
     );
   }
 
-  if (!paymentUrl) checkoutError("A assinatura foi iniciada, mas o link de pagamento não retornou. Tente novamente em instantes.");
+  if (!paymentUrl) {
+    checkoutError("O pagamento foi iniciado, mas o link do Asaas não retornou. Tente novamente em instantes.");
+  }
+
   redirect(paymentUrl);
 }

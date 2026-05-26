@@ -1,6 +1,6 @@
 export const adsConfig = {
-  clientId: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID ?? "",
-  dashboardSlot: process.env.NEXT_PUBLIC_ADSENSE_DASHBOARD_SLOT ?? "",
+  clientId: process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() ?? "",
+  dashboardSlot: process.env.NEXT_PUBLIC_ADSENSE_DASHBOARD_SLOT?.trim() ?? "",
 };
 
 export const adForbiddenRoutes = [

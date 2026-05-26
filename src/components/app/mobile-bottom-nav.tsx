@@ -5,8 +5,8 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  History,
   Home,
-  Inbox,
   KeyRound,
   Megaphone,
   MoreHorizontal,
@@ -26,38 +26,39 @@ const uuidPattern =
 
 const roleGroups: Record<MobileRole, Array<{ href: string; label: string; icon: typeof Home }>> = {
   resident: [
-    { href: "dashboard", label: "Início", icon: Home },
+    { href: "dashboard", label: "Painel", icon: Home },
     { href: "comunicados", label: "Avisos", icon: Megaphone },
     { href: "agendamentos", label: "Agenda", icon: CalendarDays },
     { href: "solicitacoes", label: "Solicitar", icon: ClipboardList },
     { href: "perfil/notificacoes", label: "Alertas", icon: Bell },
   ],
   owner: [
-    { href: "dashboard", label: "Início", icon: Home },
+    { href: "dashboard", label: "Painel", icon: Home },
     { href: "comunicados", label: "Avisos", icon: Megaphone },
     { href: "agendamentos", label: "Agenda", icon: CalendarDays },
     { href: "solicitacoes", label: "Solicitar", icon: ClipboardList },
     { href: "perfil/notificacoes", label: "Alertas", icon: Bell },
   ],
   admin: [
-    { href: "dashboard", label: "Início", icon: Home },
+    { href: "dashboard", label: "Painel", icon: Home },
     { href: "apartamentos", label: "Aptos", icon: Building2 },
     { href: "moradores", label: "Moradores", icon: UsersRound },
     { href: "comunicados", label: "Avisos", icon: Megaphone },
     { href: "configuracoes", label: "Mais", icon: MoreHorizontal },
   ],
   syndic: [
-    { href: "dashboard", label: "Início", icon: Home },
+    { href: "dashboard", label: "Painel", icon: Home },
     { href: "apartamentos", label: "Aptos", icon: Building2 },
     { href: "moradores", label: "Moradores", icon: UsersRound },
     { href: "comunicados", label: "Avisos", icon: Megaphone },
     { href: "configuracoes", label: "Mais", icon: MoreHorizontal },
   ],
   doorman: [
+    { href: "dashboard", label: "Painel", icon: Home },
     { href: "guarita", label: "Buscar", icon: Search },
-    { href: "encomendas", label: "Encomendas", icon: Package },
-    { href: "guarita", label: "Visitantes", icon: Inbox },
-    { href: "ocorrencias", label: "Ocorrências", icon: KeyRound },
+    { href: "encomendas", label: "Pacotes", icon: Package },
+    { href: "historico", label: "Histórico", icon: History },
+    { href: "ocorrencias", label: "Ocorr.", icon: KeyRound },
   ],
 };
 

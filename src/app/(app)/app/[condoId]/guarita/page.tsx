@@ -16,8 +16,6 @@ export default async function GatehousePage({
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
-  const historyStart = new Date(now);
-  historyStart.setDate(historyStart.getDate() - 90);
 
   const [
     { data: condo },
@@ -25,9 +23,7 @@ export default async function GatehousePage({
     { data: canManageRoles },
     { data: apartments },
     { data: waitingPackages },
-    { data: packageHistory },
     { data: visitors },
-    { data: incidents },
     { data: announcements },
     { data: todayBookings },
     doormanLimit,
@@ -55,27 +51,12 @@ export default async function GatehousePage({
       .order("created_at", { ascending: false })
       .limit(8),
     supabase
-      .from("packages")
-      .select("id,apartment_id,recipient_name,description,status,picked_up_by,picked_up_at,created_at,apartments(number,blocks(name))")
-      .eq("condominium_id", condoId)
-      .gte("created_at", historyStart.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(120),
-    supabase
       .from("visitor_contact_requests")
       .select("id,apartment_id,visitor_name,visitor_phone,message,status,created_at,apartments(number,blocks(name))")
       .eq("condominium_id", condoId)
-      .gte("created_at", historyStart.toISOString())
+      .gte("created_at", todayStart.toISOString())
       .order("created_at", { ascending: false })
-      .limit(120),
-    supabase
-      .from("incidents")
-      .select("id,apartment_id,title,description,status,severity,created_at,apartments(number,blocks(name))")
-      .eq("condominium_id", condoId)
-      .eq("type", "gate")
-      .gte("created_at", historyStart.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(120),
+      .limit(12),
     supabase
       .from("announcements")
       .select("id,title,body,urgent,created_at")
@@ -114,9 +95,7 @@ export default async function GatehousePage({
       condoName={condo?.name ?? "Condomínio"}
       apartments={(apartments ?? []) as never}
       waitingPackages={(waitingPackages ?? []) as never}
-      packageHistory={(packageHistory ?? []) as never}
       recentVisitors={(visitors ?? []) as never}
-      recentIncidents={(incidents ?? []) as never}
       announcements={(announcements ?? []) as never}
       canInviteDoorman={canManageRoles === true && doormanLimit.allowed}
       todayBookings={(todayBookings ?? []) as never}

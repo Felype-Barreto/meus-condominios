@@ -11,6 +11,13 @@ type AsaasSubscriptionResponse = {
   bankSlipUrl?: string;
 };
 
+type AsaasPaymentResponse = {
+  id: string;
+  invoiceUrl?: string;
+  bankSlipUrl?: string;
+  pixTransaction?: string;
+};
+
 export type AsaasPayment = {
   id?: string;
   customer?: string;
@@ -58,13 +65,21 @@ async function asaasRequest<T>(path: string, init: RequestInit) {
   });
 
   const text = await response.text();
-  const body = text ? JSON.parse(text) : null;
+  const body = text
+    ? (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { message: text.slice(0, 500) };
+        }
+      })()
+    : null;
 
   if (!response.ok) {
     const message =
       body?.errors?.[0]?.description ??
       body?.message ??
-      "Não foi possível concluir a operação no Asaas.";
+      `Não foi possível concluir a operação no Asaas. Código ${response.status}.`;
     throw new Error(message);
   }
 
@@ -111,6 +126,30 @@ export async function createAsaasPremiumSubscription(input: {
       nextDueDate: today,
       value: 39.9,
       cycle: "MONTHLY",
+      description: "Meus Condomínios - Plano Premium mensal",
+      externalReference: input.subscriptionId,
+      callback: {
+        successUrl: `${APP_URL}/app/assinatura?pagamento=asaas`,
+        autoRedirect: true,
+      },
+    }),
+  });
+}
+
+export async function createAsaasPremiumPayment(input: {
+  customerId: string;
+  subscriptionId: string;
+  billingType: "PIX" | "BOLETO" | "CREDIT_CARD";
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return asaasRequest<AsaasPaymentResponse>("/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: input.customerId,
+      billingType: input.billingType,
+      dueDate: today,
+      value: 39.9,
       description: "Meus Condomínios - Plano Premium mensal",
       externalReference: input.subscriptionId,
       callback: {

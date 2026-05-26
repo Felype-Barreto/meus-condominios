@@ -19,7 +19,7 @@ const residentItems = new Set([
   "encomendas",
   "suporte",
 ]);
-const doormanItems = new Set(["dashboard", "guarita", "encomendas", "ocorrencias", "suporte"]);
+const doormanItems = new Set(["dashboard", "guarita", "historico", "encomendas", "ocorrencias", "suporte"]);
 const staffItems = new Set(sidebarItems.map((item) => item.href));
 const permissionByItem: Record<string, string> = {
   apartamentos: "apartments.view_grid",
@@ -36,6 +36,7 @@ const permissionByItem: Record<string, string> = {
   ocorrencias: "incidents.create",
   permissoes: "settings.roles",
   whatsapp: "announcements.create",
+  historico: "gate.view_panel",
 };
 
 function useActiveCondoId(fallback: string) {

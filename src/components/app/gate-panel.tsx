@@ -3,11 +3,9 @@
 import {
   AlertTriangle,
   Bell,
-  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   DoorOpen,
-  History,
   Loader2,
   Package,
   Phone,
@@ -61,17 +59,6 @@ type Visitor = {
   apartments?: { number: string | null; blocks?: { name: string | null } | null } | null;
 };
 
-type GateIncident = {
-  id: string;
-  apartment_id: string | null;
-  title: string | null;
-  description: string | null;
-  status: string | null;
-  severity: string | null;
-  created_at: string;
-  apartments?: { number: string | null; blocks?: { name: string | null } | null } | null;
-};
-
 type Announcement = {
   id: string;
   title: string;
@@ -112,9 +99,7 @@ export function GatePanel({
   condoName,
   apartments,
   waitingPackages,
-  packageHistory,
   recentVisitors,
-  recentIncidents,
   announcements,
   canInviteDoorman,
   todayBookings = [],
@@ -123,9 +108,7 @@ export function GatePanel({
   condoName: string;
   apartments: ApartmentOption[];
   waitingPackages: GatePackage[];
-  packageHistory: GatePackage[];
   recentVisitors: Visitor[];
-  recentIncidents: GateIncident[];
   announcements: Announcement[];
   canInviteDoorman: boolean;
   todayBookings?: GateBooking[];
@@ -164,38 +147,6 @@ export function GatePanel({
   const selectedVisitors = recentVisitors.filter(
     (visitor) => !selectedApartmentId || visitor.apartment_id === selectedApartmentId,
   );
-  const selectedPackageHistory = packageHistory.filter(
-    (item) => !selectedApartmentId || item.apartment_id === selectedApartmentId,
-  );
-  const selectedIncidents = recentIncidents.filter(
-    (incident) => !selectedApartmentId || incident.apartment_id === selectedApartmentId,
-  );
-  const historyRows = [
-    ...selectedPackageHistory.map((item) => ({
-      id: `package-${item.id}`,
-      type: "Encomenda",
-      title: item.recipient_name ?? "Encomenda registrada",
-      detail: item.description ?? (item.status === "picked_up" ? "Retirada" : "Aguardando retirada"),
-      status: item.status ?? "waiting",
-      created_at: item.created_at,
-    })),
-    ...selectedVisitors.map((visitor) => ({
-      id: `visitor-${visitor.id}`,
-      type: "Visitante",
-      title: visitor.visitor_name ?? "Visitante registrado",
-      detail: visitor.message ?? "Solicitação de contato registrada",
-      status: visitor.status,
-      created_at: visitor.created_at,
-    })),
-    ...selectedIncidents.map((incident) => ({
-      id: `incident-${incident.id}`,
-      type: "Ocorrência",
-      title: incident.title ?? "Ocorrência registrada",
-      detail: incident.description ?? "Sem descrição",
-      status: incident.status ?? "open",
-      created_at: incident.created_at,
-    })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
     <div className="space-y-6">
@@ -474,48 +425,6 @@ export function GatePanel({
           </div>
         </Card>
       </div>
-
-      <Card className="p-5">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <History className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-lg font-semibold">Histórico da guarita</h2>
-              <p className="text-sm text-muted-foreground">
-                Registros dos últimos 3 meses para {selectedApartmentLabel}. O painel diário reinicia a cada data.
-              </p>
-            </div>
-          </div>
-          <StatusBadge tone="warning">90 dias</StatusBadge>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {historyRows.length ? (
-            historyRows.slice(0, 12).map((row) => (
-              <div key={row.id} className="rounded-lg border bg-muted p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase text-primary">{row.type}</p>
-                  <StatusBadge>{row.status}</StatusBadge>
-                </div>
-                <p className="mt-2 font-semibold">{row.title}</p>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{row.detail}</p>
-                <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  {new Date(row.created_at).toLocaleString("pt-BR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nenhum registro encontrado para esta unidade nos últimos 3 meses.
-            </p>
-          )}
-        </div>
-      </Card>
     </div>
   );
 }

@@ -174,7 +174,9 @@ export function NotificationCenter({
 
 export function ActivityTimeline({
   items,
+  condoId,
 }: {
+  condoId: string;
   items: Array<{
     id: string;
     action: string;
@@ -207,8 +209,10 @@ export function ActivityTimeline({
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Linha do tempo</h2>
-        <StatusBadge tone="neutral">recente</StatusBadge>
+        <h2 className="text-lg font-semibold">Últimas atividades</h2>
+        <Link href={`/app/${condoId}/historico`} className="text-xs font-semibold text-primary hover:underline">
+          Ver histórico
+        </Link>
       </div>
       <div className="mt-5 space-y-3">
         {items.length ? (
@@ -222,7 +226,7 @@ export function ActivityTimeline({
           ))
         ) : (
           <p className="rounded-lg border bg-background p-4 text-sm text-muted-foreground">
-            As atividades importantes do condominio aparecem aqui conforme a rotina acontece.
+            As atividades importantes do condomínio aparecem aqui conforme a rotina acontece.
           </p>
         )}
       </div>

@@ -3,6 +3,7 @@
   Building2,
   CalendarDays,
   ClipboardList,
+  History,
   MessagesSquare,
   Home,
   Inbox,
@@ -31,7 +32,8 @@ export const roleLabels: Record<SystemRole, string> = {
 };
 
 export const sidebarItems = [
-  { href: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "dashboard", label: "Painel geral", icon: LayoutDashboard },
+  { href: "historico", label: "Histórico", icon: History },
   { href: "apartamentos", label: "Apartamentos", icon: Building2 },
   { href: "moradores", label: "Moradores", icon: Users },
   { href: "sindico", label: "Síndico", icon: UserRoundCheck },
