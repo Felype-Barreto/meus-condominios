@@ -7,6 +7,8 @@ type AsaasCustomerResponse = {
 
 type AsaasSubscriptionResponse = {
   id: string;
+  invoiceUrl?: string;
+  bankSlipUrl?: string;
 };
 
 export type AsaasPayment = {
@@ -97,7 +99,7 @@ export async function createAsaasCustomer(input: {
 export async function createAsaasPremiumSubscription(input: {
   customerId: string;
   subscriptionId: string;
-  billingType: "UNDEFINED" | "PIX" | "BOLETO" | "CREDIT_CARD";
+  billingType: "PIX" | "BOLETO" | "CREDIT_CARD";
 }) {
   const today = new Date().toISOString().slice(0, 10);
 

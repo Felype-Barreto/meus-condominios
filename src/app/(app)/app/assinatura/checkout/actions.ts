@@ -1,5 +1,6 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -18,9 +19,7 @@ const checkoutSchema = z.object({
     .min(11, "Informe CPF ou CNPJ.")
     .transform((value) => value.replace(/\D/g, "")),
   phone: z.string().trim().optional(),
-  billingType: z
-    .enum(["UNDEFINED", "PIX", "BOLETO", "CREDIT_CARD"])
-    .default("UNDEFINED"),
+  billingType: z.enum(["PIX", "BOLETO", "CREDIT_CARD"]).default("PIX"),
 });
 
 function metadataOf(value: unknown): Record<string, unknown> {
@@ -29,136 +28,153 @@ function metadataOf(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function checkoutError(message: string): never {
+  redirect(`/app/assinatura/checkout?plano=premium&erro=${encodeURIComponent(message)}`);
+}
+
 export async function startPremiumCheckout(formData: FormData) {
   const parsed = checkoutSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    redirect(
-      `/app/assinatura/checkout?plano=premium&erro=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Dados inválidos.")}`,
-    );
+    checkoutError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
   }
+  const checkout = parsed.data;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let paymentUrl: string | null = null;
 
-  if (!user) redirect("/entrar");
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const adminSupabase = createSupabaseServiceClient();
-  const { data: profile } = await adminSupabase
-    .from("profiles")
-    .select("full_name,email")
-    .eq("id", user.id)
-    .maybeSingle();
+    if (!user) redirect("/entrar");
 
-  const { data: currentSubscription } = await adminSupabase
-    .from("subscriptions")
-    .select("id,plan,status,provider_subscription_id,metadata")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    const adminSupabase = createSupabaseServiceClient();
+    const { data: profile } = await adminSupabase
+      .from("profiles")
+      .select("full_name,email")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  let localSubscription = currentSubscription;
-  if (!localSubscription) {
-    const { data: created, error } = await adminSupabase
+    const { data: currentSubscription } = await adminSupabase
       .from("subscriptions")
-      .insert({
-        user_id: user.id,
+      .select("id,plan,status,provider_subscription_id,metadata")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let localSubscription = currentSubscription;
+    if (!localSubscription) {
+      const { data: created, error } = await adminSupabase
+        .from("subscriptions")
+        .insert({
+          user_id: user.id,
+          plan: "premium",
+          status: "paused",
+          provider: "asaas",
+          metadata: {},
+        })
+        .select("id,plan,status,provider_subscription_id,metadata")
+        .single();
+
+      if (error) throw new Error("Não foi possível iniciar a assinatura.");
+      localSubscription = created;
+    }
+
+    if (localSubscription.plan === "premium" && localSubscription.status === "active") {
+      redirect("/app/assinatura?status=active");
+    }
+
+    const metadata = metadataOf(localSubscription.metadata);
+    const existingPaymentUrl =
+      typeof metadata.checkout_invoice_url === "string"
+        ? metadata.checkout_invoice_url
+        : null;
+
+    if (
+      localSubscription.provider_subscription_id &&
+      existingPaymentUrl &&
+      ["paused", "past_due"].includes(localSubscription.status)
+    ) {
+      redirect(existingPaymentUrl);
+    }
+
+    let customerId =
+      typeof metadata.asaas_customer_id === "string"
+        ? metadata.asaas_customer_id
+        : null;
+
+    if (!customerId) {
+      const customer = await createAsaasCustomer({
+        name: checkout.name,
+        cpfCnpj: checkout.cpfCnpj,
+        phone: checkout.phone,
+        email: user.email ?? profile?.email ?? "",
+        userId: user.id,
+      });
+      customerId = customer.id;
+    }
+
+    const asaasSubscription = await createAsaasPremiumSubscription({
+      customerId,
+      subscriptionId: localSubscription.id,
+      billingType: checkout.billingType,
+    });
+
+    const payments = await getAsaasSubscriptionPayments(asaasSubscription.id);
+    const firstPayment = payments.data?.[0];
+    paymentUrl =
+      firstPayment?.invoiceUrl ??
+      firstPayment?.bankSlipUrl ??
+      asaasSubscription.invoiceUrl ??
+      asaasSubscription.bankSlipUrl ??
+      null;
+
+    await adminSupabase
+      .from("subscriptions")
+      .update({
         plan: "premium",
         status: "paused",
         provider: "asaas",
-        metadata: {},
+        provider_subscription_id: asaasSubscription.id,
+        metadata: {
+          ...metadata,
+          asaas_customer_id: customerId,
+          checkout_payment_id: firstPayment?.id ?? null,
+          checkout_invoice_url: paymentUrl ?? null,
+          billing_type: checkout.billingType,
+        },
       })
-      .select("id,plan,status,provider_subscription_id,metadata")
-      .single();
+      .eq("id", localSubscription.id);
 
-    if (error) throw new Error("Não foi possível iniciar a assinatura.");
-    localSubscription = created;
-  }
-
-  if (
-    localSubscription.plan === "premium" &&
-    localSubscription.status === "active"
-  ) {
-    redirect("/app/assinatura?status=active");
-  }
-
-  const metadata = metadataOf(localSubscription.metadata);
-  const existingPaymentUrl =
-    typeof metadata.checkout_invoice_url === "string"
-      ? metadata.checkout_invoice_url
-      : null;
-
-  if (
-    localSubscription.provider_subscription_id &&
-    existingPaymentUrl &&
-    ["paused", "past_due"].includes(localSubscription.status)
-  ) {
-    redirect(existingPaymentUrl);
-  }
-
-  let customerId =
-    typeof metadata.asaas_customer_id === "string"
-      ? metadata.asaas_customer_id
-      : null;
-
-  if (!customerId) {
-    const customer = await createAsaasCustomer({
-      name: parsed.data.name,
-      cpfCnpj: parsed.data.cpfCnpj,
-      phone: parsed.data.phone,
-      email: user.email ?? profile?.email ?? "",
-      userId: user.id,
-    });
-    customerId = customer.id;
-  }
-
-  const asaasSubscription = await createAsaasPremiumSubscription({
-    customerId,
-    subscriptionId: localSubscription.id,
-    billingType: parsed.data.billingType,
-  });
-
-  const payments = await getAsaasSubscriptionPayments(asaasSubscription.id);
-  const firstPayment = payments.data?.[0];
-  const paymentUrl = firstPayment?.invoiceUrl ?? firstPayment?.bankSlipUrl;
-
-  await adminSupabase
-    .from("subscriptions")
-    .update({
-      plan: "premium",
-      status: "paused",
+    await adminSupabase.from("billing_events").insert({
+      condominium_id: null,
+      user_id: user.id,
+      event_type: "asaas_subscription_checkout_started",
       provider: "asaas",
-      provider_subscription_id: asaasSubscription.id,
+      amount_cents: 3990,
+      currency: "BRL",
+      status: "pending",
       metadata: {
-        ...metadata,
-        asaas_customer_id: customerId,
-        checkout_payment_id: firstPayment?.id ?? null,
-        checkout_invoice_url: paymentUrl ?? null,
-        billing_type: parsed.data.billingType,
+        subscription_id: localSubscription.id,
+        provider_subscription_id: asaasSubscription.id,
+        payment_id: firstPayment?.id ?? null,
       },
-    })
-    .eq("id", localSubscription.id);
+    });
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
 
-  await adminSupabase.from("billing_events").insert({
-    condominium_id: null,
-    user_id: user.id,
-    event_type: "asaas_subscription_checkout_started",
-    provider: "asaas",
-    amount_cents: 3990,
-    currency: "BRL",
-    status: "pending",
-    metadata: {
-      subscription_id: localSubscription.id,
-      provider_subscription_id: asaasSubscription.id,
-      payment_id: firstPayment?.id ?? null,
-    },
-  });
-
-  if (!paymentUrl) {
-    redirect("/app/assinatura/checkout?plano=premium&erro=link");
+    console.error("Asaas premium checkout failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    checkoutError(
+      error instanceof Error
+        ? error.message
+        : "Não foi possível iniciar o pagamento.",
+    );
   }
 
+  if (!paymentUrl) checkoutError("A assinatura foi iniciada, mas o link de pagamento não retornou. Tente novamente em instantes.");
   redirect(paymentUrl);
 }

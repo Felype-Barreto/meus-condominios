@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useCanShowAds } from "@/hooks/useCanShowAds";
@@ -60,12 +59,6 @@ export function AdSenseSlot({
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <Script
-        async
-        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsConfig.clientId}`}
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-      />
       <ins
         className="adsbygoogle block min-h-24"
         style={{ display: "block" }}

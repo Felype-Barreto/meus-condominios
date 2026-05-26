@@ -107,10 +107,9 @@ export default async function SubscriptionCheckoutPage({
                   Forma de pagamento
                   <select
                     name="billingType"
-                    defaultValue="UNDEFINED"
+                    defaultValue="PIX"
                     className="h-11 w-full rounded-lg border bg-background px-3 text-sm outline-none transition focus:border-primary"
                   >
-                    <option value="UNDEFINED">Escolher no Asaas</option>
                     <option value="PIX">Pix</option>
                     <option value="BOLETO">Boleto</option>
                     <option value="CREDIT_CARD">Cartão</option>

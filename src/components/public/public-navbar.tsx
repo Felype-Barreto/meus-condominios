@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const links = [
   { href: "/recursos", label: "Recursos" },
@@ -13,7 +14,12 @@ const links = [
   { href: "/contato", label: "Contato" },
 ];
 
-export function PublicNavbar() {
+export async function PublicNavbar() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/92 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -40,8 +46,8 @@ export function PublicNavbar() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href="/entrar">
-              <LogIn className="h-4 w-4" /> Entrar
+            <Link href={user ? "/app" : "/entrar"}>
+              <LogIn className="h-4 w-4" /> {user ? "Painel" : "Entrar"}
             </Link>
           </Button>
           <Button asChild size="sm">

@@ -38,6 +38,13 @@ export function AppShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/92 px-4 backdrop-blur-xl md:px-6">
             <MobileDrawer isPlatformAdmin={isPlatformAdmin} />
+            <Link
+              href="/"
+              className="hidden shrink-0 items-center gap-2 rounded-lg px-1 py-2 text-sm font-semibold hover:text-primary focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+            >
+              <Building2 className="h-5 w-5 text-primary" />
+              <span>Meus Condomínios</span>
+            </Link>
             <div className="flex items-center gap-2 lg:hidden">
               <Building2 className="h-5 w-5 text-primary" />
               <span className="font-semibold">Meus Condomínios</span>

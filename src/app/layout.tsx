@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AdSenseLoader } from "@/components/ads/adsense-loader";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground">
+        <AdSenseLoader />
         <Providers>{children}</Providers>
       </body>
     </html>

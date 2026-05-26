@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 const adminHits = new Map<string, { count: number; resetAt: number }>();
 
@@ -52,7 +53,38 @@ function adminRateLimited(request: NextRequest) {
   return current.count > 120;
 }
 
-export function proxy(request: NextRequest) {
+async function updateSupabaseSession(request: NextRequest) {
+  let response = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  await supabase.auth.getUser();
+  return response;
+}
+
+export async function proxy(request: NextRequest) {
+  const sessionResponse = await updateSupabaseSession(request);
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
 
   if (segments[0] === "admin") {
@@ -79,16 +111,15 @@ export function proxy(request: NextRequest) {
       });
     }
 
-    const response = NextResponse.next();
-    response.headers.set("x-robots-tag", "noindex, nofollow, noarchive");
-    response.headers.set("cache-control", "no-store, max-age=0");
-    return response;
+    sessionResponse.headers.set("x-robots-tag", "noindex, nofollow, noarchive");
+    sessionResponse.headers.set("cache-control", "no-store, max-age=0");
+    return sessionResponse;
   }
 
   const condoId = segments[1];
 
   if (segments[0] !== "app" || !condoId || accountAppSegments.has(condoId)) {
-    return NextResponse.next();
+    return sessionResponse;
   }
 
   if (!uuidPattern.test(condoId)) {
@@ -98,9 +129,11 @@ export function proxy(request: NextRequest) {
     });
   }
 
-  return NextResponse.next();
+  return sessionResponse;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/app/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icons/|manifest.webmanifest|robots.txt|sitemap.xml|opengraph-image).*)",
+  ],
 };

@@ -84,7 +84,7 @@ export function Sidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="group/sidebar sticky top-0 hidden h-screen w-16 shrink-0 overflow-hidden border-r bg-card transition-[width] duration-200 ease-out hover:w-56 focus-within:w-56 lg:flex lg:flex-col">
+    <aside className="group/sidebar sticky top-0 hidden h-screen w-16 shrink-0 overflow-hidden border-r bg-card transition-[width] duration-200 ease-out hover:w-64 focus-within:w-64 lg:flex lg:flex-col">
       <SidebarContent
         condoId={activeCondoId}
         isPlatformAdmin={isPlatformAdmin}
@@ -183,11 +183,11 @@ export function SidebarContent({
           className={cn(
             "min-w-0 whitespace-nowrap",
             rail &&
-              "pointer-events-none w-0 overflow-hidden opacity-0 transition-all group-hover/sidebar:pointer-events-auto group-hover/sidebar:w-36 group-hover/sidebar:opacity-100 group-focus-within/sidebar:pointer-events-auto group-focus-within/sidebar:w-36 group-focus-within/sidebar:opacity-100",
+              "pointer-events-none w-0 overflow-hidden opacity-0 transition-all group-hover/sidebar:pointer-events-auto group-hover/sidebar:w-44 group-hover/sidebar:opacity-100 group-focus-within/sidebar:pointer-events-auto group-focus-within/sidebar:w-44 group-focus-within/sidebar:opacity-100",
           )}
         >
-          <p className="font-semibold">Meus Condomínios</p>
-          <p className="text-xs text-muted-foreground">Painel do condominio</p>
+          <p className="truncate font-semibold">Meus Condomínios</p>
+          <p className="truncate text-xs text-muted-foreground">Painel do condomínio</p>
         </div>
       </div>
 
