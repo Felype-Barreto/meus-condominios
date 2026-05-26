@@ -2,6 +2,22 @@
   const message = error instanceof Error ? error.message : "";
   const lower = message.toLowerCase();
 
+  const expectedUserErrors = [
+    "apartamento",
+    "convite",
+    "responsaveis",
+    "responsáveis",
+    "autenticado",
+    "obrigatorio",
+    "obrigatório",
+    "email",
+    "e-mail",
+  ];
+
+  if (expectedUserErrors.some((fragment) => lower.includes(fragment))) {
+    return message;
+  }
+
   if (lower.includes("permiss")) {
     return "Você não tem permissão para executar esta ação.";
   }

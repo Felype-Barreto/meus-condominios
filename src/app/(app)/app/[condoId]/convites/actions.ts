@@ -30,6 +30,20 @@ export async function createResidentInviteAction(
   }
 
   const supabase = await createSupabaseServerClient();
+  const { data: apartment, error: apartmentError } = await supabase
+    .from("apartments")
+    .select("id")
+    .eq("id", parsed.data.apartment_id)
+    .eq("condominium_id", parsed.data.condominium_id)
+    .maybeSingle();
+
+  if (apartmentError || !apartment) {
+    return {
+      status: "error",
+      message: "Selecione um apartamento válido deste condomínio.",
+    };
+  }
+
   const { data, error } = await supabase.rpc("invite_resident", {
     condo_id: parsed.data.condominium_id,
     invite_role: parsed.data.invite_type,
@@ -39,6 +53,11 @@ export async function createResidentInviteAction(
   });
 
   if (error) {
+    console.error("createResidentInviteAction failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
     return { status: "error", message: safeActionErrorMessage(error) };
   }
 

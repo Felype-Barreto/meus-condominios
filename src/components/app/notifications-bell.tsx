@@ -70,7 +70,7 @@ export function NotificationsBell() {
   }, [refresh]);
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <Button
         type="button"
         variant="outline"
@@ -87,7 +87,7 @@ export function NotificationsBell() {
         ) : null}
       </Button>
       {open ? (
-        <div className="absolute right-0 top-12 z-50 w-[min(92vw,360px)] overflow-hidden rounded-lg border bg-card shadow-2xl">
+        <div className="fixed inset-x-3 top-[4.5rem] z-[70] max-h-[calc(100dvh-6rem)] overflow-hidden rounded-lg border bg-card shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:z-50 sm:w-[min(92vw,360px)]">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <p className="font-semibold">Notificações</p>
             <span className="rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
