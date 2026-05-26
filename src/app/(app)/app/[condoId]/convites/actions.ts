@@ -50,6 +50,30 @@ export async function createResidentInviteAction(
     .eq("id", parsed.data.condominium_id)
     .maybeSingle();
 
+  const { data: existingInvite, error: existingInviteError } = await supabase
+    .from("invites")
+    .select("token,email,expires_at")
+    .eq("condominium_id", parsed.data.condominium_id)
+    .eq("apartment_id", parsed.data.apartment_id)
+    .eq("invite_type", parsed.data.invite_type)
+    .eq("status", "active")
+    .is("used_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!existingInviteError && existingInvite?.token) {
+    const inviteUrl = buildPublicUrl(`/convite/${existingInvite.token}`);
+
+    return {
+      status: "success",
+      message: "Já existia um convite ativo para este apartamento. Reaproveitei o link.",
+      inviteUrl,
+      whatsappText: `Olá! Você recebeu um convite para se cadastrar no Meus Condomínios. Acesse o link e complete seu cadastro: ${inviteUrl}${condo?.slug ? `\n\nCódigo do condomínio para entrar depois: ${condo.slug}` : ""}`,
+    };
+  }
+
   const { data, error } = await supabase.rpc("invite_resident", {
     condo_id: parsed.data.condominium_id,
     invite_role: parsed.data.invite_type,
