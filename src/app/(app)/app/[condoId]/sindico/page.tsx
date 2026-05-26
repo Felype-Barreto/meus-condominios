@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { defaultSyndicPermissions } from "@/lib/permissions";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   becomeSyndicAction,
@@ -77,7 +78,7 @@ export default async function SyndicPage({
   const primaryProfile = primary
     ? syndicProfiles.find((profile) => profile.membership_id === primary.id)
     : undefined;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
 
   return (
     <div className="space-y-6">

@@ -2,6 +2,7 @@ import { QRCodeCard } from "@/components/app/qr-code-card";
 import { ResidentInvitePanel } from "@/components/app/resident-invite-panel";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Card } from "@/components/ui/card";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function inviteLabel(type: string) {
@@ -45,7 +46,7 @@ export default async function InvitesPage({
         .limit(12),
     ]);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
 
   return (
     <div className="space-y-6">

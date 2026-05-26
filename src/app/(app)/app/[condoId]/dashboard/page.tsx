@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getCurrentUsage } from "@/lib/plans";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { canSendWhatsAppMessage } from "@/lib/whatsapp";
 
@@ -154,7 +155,7 @@ export default async function DashboardPage({
     countQuery(supabase.from("tickets").select("id", { count: "exact", head: true }).eq("condominium_id", condoId).eq("status", "closed").gte("updated_at", monthStart.toISOString())),
   ]);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
   const upcoming = (upcomingBookings ?? []) as unknown as UpcomingBooking[];
   const role = membership?.role ?? "subscriber_admin";
   const onboardingCompleted = {
@@ -255,11 +256,13 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
         <AdSenseSlot
           plan={condo?.plan ?? "free"}
           pathname={`/app/${condoId}/dashboard`}
           label="Publicidade"
+          className="min-h-[360px]"
+          adClassName="min-h-[300px]"
         />
         <ActivityTimeline
           items={(activity ?? []) as ActivityRow[]}

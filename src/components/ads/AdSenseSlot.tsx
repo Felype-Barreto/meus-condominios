@@ -17,12 +17,16 @@ export function AdSenseSlot({
   slot = adsConfig.dashboardSlot,
   label = "Publicidade",
   devFallback = true,
+  className = "",
+  adClassName = "",
 }: {
   plan?: string | null;
   pathname?: string;
   slot?: string;
   label?: string;
   devFallback?: boolean;
+  className?: string;
+  adClassName?: string;
 }) {
   const routeAllowed = isAdRouteAllowed(pathname ?? (typeof window !== "undefined" ? window.location.pathname : "/"));
   const canShowAds = useCanShowAds({ plan, pathname, safePlacement: routeAllowed });
@@ -43,11 +47,11 @@ export function AdSenseSlot({
     if (!canShowFallback || process.env.NODE_ENV === "production") return null;
 
     return (
-      <Card className="p-4">
+      <Card className={`flex h-full flex-col p-4 ${className}`}>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
-        <div className="rounded-lg border bg-background p-4 text-sm text-muted-foreground">
+        <div className="flex-1 rounded-lg border bg-background p-4 text-sm text-muted-foreground">
           Espaço reservado para publicidade discreta no plano grátis. Configure `NEXT_PUBLIC_ADSENSE_CLIENT_ID` para ativar em produção.
         </div>
       </Card>
@@ -55,13 +59,13 @@ export function AdSenseSlot({
   }
 
   return (
-    <Card className="p-4">
+    <Card className={`flex h-full flex-col p-4 ${className}`}>
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <ins
-        className="adsbygoogle block min-h-24"
-        style={{ display: "block" }}
+        className={`adsbygoogle block min-h-80 flex-1 ${adClassName}`}
+        style={{ display: "block", width: "100%" }}
         data-ad-client={adsConfig.clientId}
         data-ad-slot={slot}
         data-ad-format="auto"

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { updateMyProfileAction } from "./actions";
+import { updateMyProfileAction, updateResidentApprovalModeAction } from "./actions";
 
 export default async function SettingsPage({
   params,
@@ -25,6 +26,21 @@ export default async function SettingsPage({
         .eq("id", user.id)
         .maybeSingle()
     : { data: null };
+  const [
+    { data: condo },
+    { data: isSubscriberAdmin },
+    { data: canManageRoles },
+  ] = await Promise.all([
+    supabase.from("condominiums").select("settings").eq("id", condoId).single(),
+    supabase.rpc("is_subscriber_admin", { condo_id: condoId }),
+    supabase.rpc("has_permission", {
+      condo_id: condoId,
+      permission_key: "settings.roles",
+    }),
+  ]);
+  const settings = (condo?.settings ?? {}) as Record<string, unknown>;
+  const canManageApproval = Boolean(isSubscriberAdmin || canManageRoles);
+  const residentAutoApprove = settings.resident_auto_approve === true;
 
   return (
     <div className="space-y-6">
@@ -119,6 +135,34 @@ export default async function SettingsPage({
           <Button asChild className="mt-5" variant="outline">
             <Link href={`/app/${condoId}/permissoes`}>Ver permissões</Link>
           </Button>
+        </Card>
+
+        <Card className="p-5">
+          <UserRound className="h-6 w-6 text-primary" />
+          <h2 className="mt-4 text-lg font-semibold">Aprovação de moradores</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            No modo manual, novos cadastros ficam pendentes até o admin ou síndico aprovar.
+            No modo automático, o convite aprovado já ativa o morador.
+          </p>
+          <form action={updateResidentApprovalModeAction} className="mt-5 space-y-4">
+            <input type="hidden" name="condominium_id" value={condoId} />
+            <label className="flex items-center justify-between gap-4 rounded-lg border bg-background p-4">
+              <span>
+                <span className="block text-sm font-semibold">Aprovar automaticamente</span>
+                <span className="block text-sm text-muted-foreground">
+                  Desligado significa aprovação manual.
+                </span>
+              </span>
+              <Switch
+                name="resident_auto_approve"
+                defaultChecked={residentAutoApprove}
+                disabled={!canManageApproval}
+              />
+            </label>
+            <Button type="submit" variant="outline" disabled={!canManageApproval}>
+              Salvar regra
+            </Button>
+          </form>
         </Card>
 
         <Card className="p-5">

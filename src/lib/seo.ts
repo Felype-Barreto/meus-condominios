@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { getPublicAppUrl } from "@/lib/public-url";
 
-export const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://meuscondominios.site";
+export const siteUrl = getPublicAppUrl();
 export const siteName = "Meus Condomínios";
 export const officialEmail = "codeflowbr1@gmail.com";
 

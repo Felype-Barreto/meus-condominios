@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { buildPublicUrl } from "@/lib/public-url";
 import { safeActionErrorMessage } from "@/lib/safe-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createResidentInviteSchema } from "@/lib/validations/resident-invite";
@@ -42,9 +43,8 @@ export async function createResidentInviteAction(
   }
 
   revalidatePath(`/app/${parsed.data.condominium_id}/convites`);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const result = data as { token: string };
-  const inviteUrl = `${appUrl}/convite/${result.token}`;
+  const inviteUrl = buildPublicUrl(`/convite/${result.token}`);
 
   return {
     status: "success",

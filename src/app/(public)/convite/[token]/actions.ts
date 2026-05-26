@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { safeActionErrorMessage } from "@/lib/safe-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { acceptSyndicInviteSchema } from "@/lib/validations/condominium";
@@ -22,9 +23,8 @@ export type AcceptInviteState = {
 async function getRequestOrigin() {
   const headerList = await headers();
   return (
-    headerList.get("origin") ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:3000"
+    headerList.get("origin")?.trim().replace(/\/+$/, "") ??
+    getPublicAppUrl()
   );
 }
 
@@ -304,7 +304,7 @@ export async function acceptResidentInviteAction(
     };
   }
 
-  const { error } = await supabase.rpc("accept_resident_invite", {
+  const { data, error } = await supabase.rpc("accept_resident_invite", {
     invite_token: parsed.data.token,
     profile_payload: {
       full_name: parsed.data.full_name,
@@ -318,13 +318,21 @@ export async function acceptResidentInviteAction(
       allow_internal_search: parsed.data.allow_internal_search,
       allow_public_qr_by_apartment: parsed.data.allow_public_qr_by_apartment,
       allow_public_qr_by_name: parsed.data.allow_public_qr_by_name,
+      allow_public_contact:
+        parsed.data.allow_public_qr_by_apartment ||
+        parsed.data.allow_public_qr_by_name,
+      allow_apartment_search: parsed.data.allow_public_qr_by_apartment,
+      allow_name_search: parsed.data.allow_public_qr_by_name,
       allow_whatsapp_direct: parsed.data.allow_whatsapp_direct,
+      allow_whatsapp_redirect: parsed.data.allow_whatsapp_direct,
     },
   });
 
   if (error) {
     return { status: "error", message: safeActionErrorMessage(error) };
   }
+
+  const acceptResult = data as { condominium_id?: string; status?: string } | null;
 
   if (invite?.condominium_id) {
     const categories = requestedOptIn
@@ -359,6 +367,10 @@ export async function acceptResidentInviteAction(
         consent_text_version: WHATSAPP_CONSENT_TEXT_VERSION,
       },
     });
+  }
+
+  if (acceptResult?.condominium_id && acceptResult.status === "active") {
+    redirect(`/app/${acceptResult.condominium_id}/dashboard`);
   }
 
   return { status: "idle", submitted: true };

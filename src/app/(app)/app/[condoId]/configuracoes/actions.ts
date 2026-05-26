@@ -86,3 +86,55 @@ export async function updateMyPrivacySettingsAction(formData: FormData) {
   revalidatePath(`/app/${condoId}/configuracoes`);
   revalidatePath(`/app/${condoId}/configuracoes/privacidade`);
 }
+
+export async function updateResidentApprovalModeAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id") ?? "");
+  const residentAutoApprove = formData.get("resident_auto_approve") === "on";
+  if (!condoId) throw new Error("Condomínio inválido.");
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Entre na sua conta para alterar esta regra.");
+
+  const [{ data: isSubscriberAdmin }, { data: canManageRoles }, { data: condo }] =
+    await Promise.all([
+      supabase.rpc("is_subscriber_admin", { condo_id: condoId }),
+      supabase.rpc("has_permission", {
+        condo_id: condoId,
+        permission_key: "settings.roles",
+      }),
+      supabase.from("condominiums").select("settings").eq("id", condoId).single(),
+    ]);
+
+  if (!isSubscriberAdmin && !canManageRoles) {
+    throw new Error("Você não tem permissão para alterar aprovação de moradores.");
+  }
+
+  const settings = (condo?.settings ?? {}) as Record<string, unknown>;
+  const { error } = await supabase
+    .from("condominiums")
+    .update({
+      settings: {
+        ...settings,
+        resident_auto_approve: residentAutoApprove,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", condoId);
+
+  if (error) throw new Error("Não foi possível salvar a regra agora.");
+
+  await supabase.rpc("audit_event", {
+    condo_id: condoId,
+    event_action: "resident_approval_mode_updated",
+    event_entity_type: "condominiums",
+    event_entity_id: condoId,
+    event_metadata: { resident_auto_approve: residentAutoApprove },
+  });
+
+  revalidatePath(`/app/${condoId}/configuracoes`);
+  revalidatePath(`/app/${condoId}/moradores`);
+}

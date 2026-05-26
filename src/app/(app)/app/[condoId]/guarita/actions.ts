@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { buildPublicUrl } from "@/lib/public-url";
 import { safeActionErrorMessage } from "@/lib/safe-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -65,11 +66,10 @@ export async function inviteDoormanAction(
 
     revalidatePath(`/app/${parsed.data.condominium_id}/guarita`);
     const result = data as { token: string };
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     return {
       status: "success",
       message: "Convite de guarita criado.",
-      inviteUrl: `${appUrl}/convite/${result.token}`,
+      inviteUrl: buildPublicUrl(`/convite/${result.token}`),
     };
   } catch (error) {
     return { status: "error", message: safeActionErrorMessage(error) };

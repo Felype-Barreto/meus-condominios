@@ -2,6 +2,7 @@
 
 import { createCondominiumSchema } from "@/lib/validations/condominium";
 import { getCondominiumCreationEntitlement } from "@/lib/plans";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { safeActionErrorMessage } from "@/lib/safe-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -91,7 +92,7 @@ export async function createCondominiumAction(
     syndic_choice: "self" | "invite" | "later";
   };
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
   const inviteUrl = result.invite_token
     ? `${appUrl}/convite/${result.invite_token}`
     : undefined;

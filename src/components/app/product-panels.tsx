@@ -142,7 +142,7 @@ export function NotificationCenter({
   notifications: Array<{ id: string; title: string; body: string | null; href: string | null; created_at: string; read_at: string | null }>;
 }) {
   return (
-    <Card className="p-6">
+    <Card className="h-full p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Central de notificações</h2>
         <StatusBadge tone="neutral">{notifications.filter((item) => !item.read_at).length} novas</StatusBadge>
@@ -207,7 +207,7 @@ export function ActivityTimeline({
   }
 
   return (
-    <Card className="p-6">
+    <Card className="h-full p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Últimas atividades</h2>
         <Link href={`/app/${condoId}/historico`} className="text-xs font-semibold text-primary hover:underline">

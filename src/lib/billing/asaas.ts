@@ -1,5 +1,13 @@
-const ASAAS_API_URL = process.env.ASAAS_API_URL ?? "https://api.asaas.com/v3";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://meuscondominios.site";
+import { getPublicAppUrl } from "@/lib/public-url";
+
+function normalizeAsaasApiUrl(value: string | undefined) {
+  const raw = (value ?? "https://api.asaas.com/v3").trim().replace(/\/+$/, "");
+  if (!raw) return "https://api.asaas.com/v3";
+  return raw.endsWith("/v3") ? raw : `${raw}/v3`;
+}
+
+const ASAAS_API_URL = normalizeAsaasApiUrl(process.env.ASAAS_API_URL);
+const APP_URL = getPublicAppUrl();
 
 type AsaasCustomerResponse = {
   id: string;
@@ -55,7 +63,8 @@ function asaasHeaders() {
 }
 
 async function asaasRequest<T>(path: string, init: RequestInit) {
-  const response = await fetch(`${ASAAS_API_URL}${path}`, {
+  const url = `${ASAAS_API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const response = await fetch(url, {
     ...init,
     headers: {
       ...asaasHeaders(),
@@ -76,6 +85,17 @@ async function asaasRequest<T>(path: string, init: RequestInit) {
     : null;
 
   if (!response.ok) {
+    console.error("Asaas request failed", {
+      status: response.status,
+      path,
+      host: (() => {
+        try {
+          return new URL(url).host;
+        } catch {
+          return "invalid-url";
+        }
+      })(),
+    });
     const message =
       body?.errors?.[0]?.description ??
       body?.message ??

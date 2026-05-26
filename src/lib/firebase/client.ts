@@ -5,6 +5,10 @@ function envValue(value: string | undefined) {
   return value?.trim();
 }
 
+function analyticsMeasurementId(value: string | undefined) {
+  return value?.match(/G-[A-Z0-9]+/)?.[0];
+}
+
 const firebaseConfig = {
   apiKey: envValue(process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
   authDomain: envValue(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
@@ -12,7 +16,7 @@ const firebaseConfig = {
   storageBucket: envValue(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
   messagingSenderId: envValue(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID),
   appId: envValue(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
-  measurementId: envValue(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID),
+  measurementId: analyticsMeasurementId(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID),
 };
 
 function hasFirebaseAnalyticsConfig() {

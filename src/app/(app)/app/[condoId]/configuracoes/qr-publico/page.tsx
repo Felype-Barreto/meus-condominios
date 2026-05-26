@@ -5,6 +5,7 @@ import { PublicQrSettingsPanel } from "@/components/app/public-qr-settings-panel
 import { EmptyState } from "@/components/common/empty-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Card } from "@/components/ui/card";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type CondoSettings = {
@@ -63,7 +64,7 @@ export default async function PublicQrSettingsPage({
 
   const condoData = condo as CondoRow | null;
   const settings = condoData?.settings ?? {};
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getPublicAppUrl();
   const publicUrl = `${appUrl}/visitante/${condoData?.public_code ?? ""}`;
 
   return (
