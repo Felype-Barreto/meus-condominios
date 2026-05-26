@@ -28,6 +28,32 @@ async function getRequestOrigin() {
   );
 }
 
+function normalizeEmail(value?: string | null) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function inviteEmailError(expectedEmail: string) {
+  return `Este convite foi emitido para ${expectedEmail}. Saia da conta atual ou entre com esse e-mail para concluir o cadastro.`;
+}
+
+async function getInviteIdentity(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  token: string,
+) {
+  const { data } = await supabase.rpc("get_invite_public", {
+    invite_token: token,
+  });
+
+  return data as { condominium_id?: string; email?: string | null } | null;
+}
+
+export async function signOutInviteAccountAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect(`/convite/${token}`);
+}
+
 export async function acceptSyndicInviteAction(
   _previousState: AcceptInviteState,
   formData: FormData,
@@ -55,9 +81,28 @@ export async function acceptSyndicInviteAction(
   }
 
   const supabase = await createSupabaseServerClient();
+  const invite = await getInviteIdentity(supabase, parsed.data.token);
+  const expectedEmail = normalizeEmail(invite?.email);
+  const submittedEmail = normalizeEmail(parsed.data.email);
+
+  if (expectedEmail && submittedEmail !== expectedEmail) {
+    return {
+      status: "error",
+      message: inviteEmailError(invite?.email ?? parsed.data.email),
+    };
+  }
+
   let {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const connectedEmail = normalizeEmail(user?.email);
+  if (user && connectedEmail !== submittedEmail) {
+    return {
+      status: "error",
+      message: `Este navegador está conectado como ${user.email}. Saia dessa conta para cadastrar ${parsed.data.email}.`,
+    };
+  }
 
   if (!user) {
     if (!parsed.data.password) {
@@ -143,9 +188,28 @@ export async function acceptDoormanInviteAction(
   }
 
   const supabase = await createSupabaseServerClient();
+  const invite = await getInviteIdentity(supabase, parsed.data.token);
+  const expectedEmail = normalizeEmail(invite?.email);
+  const submittedEmail = normalizeEmail(parsed.data.email);
+
+  if (expectedEmail && submittedEmail !== expectedEmail) {
+    return {
+      status: "error",
+      message: inviteEmailError(invite?.email ?? parsed.data.email),
+    };
+  }
+
   let {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const connectedEmail = normalizeEmail(user?.email);
+  if (user && connectedEmail !== submittedEmail) {
+    return {
+      status: "error",
+      message: `Este navegador está conectado como ${user.email}. Saia dessa conta para cadastrar ${parsed.data.email}.`,
+    };
+  }
 
   if (!user) {
     if (!parsed.data.password) {
@@ -235,9 +299,28 @@ export async function acceptResidentInviteAction(
   }
 
   const supabase = await createSupabaseServerClient();
+  const invite = await getInviteIdentity(supabase, parsed.data.token);
+  const expectedEmail = normalizeEmail(invite?.email);
+  const submittedEmail = normalizeEmail(parsed.data.email);
+
+  if (expectedEmail && submittedEmail !== expectedEmail) {
+    return {
+      status: "error",
+      message: inviteEmailError(invite?.email ?? parsed.data.email),
+    };
+  }
+
   let {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const connectedEmail = normalizeEmail(user?.email);
+  if (user && connectedEmail !== submittedEmail) {
+    return {
+      status: "error",
+      message: `Este navegador está conectado como ${user.email}. Saia dessa conta para cadastrar ${parsed.data.email}.`,
+    };
+  }
 
   if (!user) {
     if (!parsed.data.password) {
@@ -272,19 +355,7 @@ export async function acceptResidentInviteAction(
     };
   }
 
-  const { data: inviteData } = await supabase.rpc("get_invite_public", {
-    invite_token: parsed.data.token,
-  });
-  const invite = inviteData as { condominium_id?: string; email?: string | null } | null;
-  const profileEmail = user.email ?? parsed.data.email;
-
-  if (invite?.email && profileEmail.toLowerCase() !== invite.email.toLowerCase()) {
-    return {
-      status: "error",
-      message:
-        "Este convite foi emitido para outro e-mail. Entre com o Gmail ou e-mail correto, ou peça um novo convite.",
-    };
-  }
+  const profileEmail = parsed.data.email;
 
   const normalizedPhone = (parsed.data.phone ?? "").replace(/[^\d+]/g, "");
   const rawCategories = normalizeWhatsAppCategories({

@@ -30,7 +30,7 @@ export default async function InvitesPage({
     await Promise.all([
       supabase
         .from("condominiums")
-        .select("name, public_code")
+        .select("name, slug, public_code")
         .eq("id", condoId)
         .single(),
       supabase
@@ -63,6 +63,15 @@ export default async function InvitesPage({
         apartments={(apartments ?? []) as never}
         selectedApartmentId={selectedApartmentId}
       />
+
+      <Card className="p-5">
+        <p className="text-sm font-semibold">Código do condomínio para login</p>
+        <p className="mt-2 break-all text-2xl font-semibold">{condo?.slug ?? "codigo-indisponivel"}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Moradores, síndicos e guarita usam este código na opção “Condomínio”
+          da tela Entrar, junto com o e-mail e a senha criados pelo convite.
+        </p>
+      </Card>
 
       <QRCodeCard
         title="QR Code público da portaria"

@@ -63,6 +63,7 @@ export function DoormanInviteForm({
               name="email"
               type="email"
               defaultValue={invitedEmail}
+              readOnly={Boolean(invitedEmail)}
               placeholder="voce@email.com"
             />
             <FieldError errors={state.fieldErrors?.email} />

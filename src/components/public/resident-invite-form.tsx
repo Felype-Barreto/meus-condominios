@@ -50,7 +50,7 @@ export function ResidentInviteForm({
     initialState,
   );
   const loggedIn = Boolean(currentUserEmail);
-  const fixedEmail = currentUserEmail ?? invitedEmail;
+  const fixedEmail = invitedEmail ?? currentUserEmail;
   const inviteTypeLabel = inviteType === "owner" ? "Proprietário" : "Morador";
 
   if (state.submitted) {
@@ -119,7 +119,7 @@ export function ResidentInviteForm({
               name="email"
               type="email"
               defaultValue={fixedEmail}
-              readOnly={Boolean(fixedEmail)}
+              readOnly={Boolean(invitedEmail)}
             />
             <FieldError errors={state.fieldErrors?.email} />
           </div>

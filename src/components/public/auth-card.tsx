@@ -65,6 +65,7 @@ export function AuthCard({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [accountMode, setAccountMode] = useState<"admin" | "condominium">("admin");
 
   const handleCaptchaToken = useCallback((token: string) => {
     setCaptchaToken(token);
@@ -95,6 +96,9 @@ export function AuthCard({
       const supabase = createSupabaseBrowserClient();
       const email = String(formData.get("email") ?? "").trim();
       const password = String(formData.get("password") ?? "");
+      const condominiumCode = String(formData.get("condominium_code") ?? "")
+        .trim()
+        .toLowerCase();
 
       if (signup) {
         const parsed = signUpSchema.safeParse({
@@ -163,6 +167,38 @@ export function AuthCard({
         return;
       }
 
+      if (accountMode === "condominium") {
+        if (!condominiumCode) {
+          await supabase.auth.signOut();
+          setError("Informe o código do condomínio.");
+          return;
+        }
+
+        const { data: accessData, error: accessError } = await supabase.rpc(
+          "resolve_condominium_login",
+          { condo_code: condominiumCode },
+        );
+        const access = (Array.isArray(accessData) ? accessData[0] : accessData) as
+          | { condominium_id?: string; status?: string }
+          | null;
+
+        if (accessError || !access?.condominium_id) {
+          await supabase.auth.signOut();
+          setError("Não encontramos uma conta ativa para este e-mail nesse condomínio.");
+          return;
+        }
+
+        if (access.status !== "active") {
+          await supabase.auth.signOut();
+          setError("Seu cadastro nesse condomínio ainda está pendente de aprovação.");
+          return;
+        }
+
+        router.replace(`/app/${access.condominium_id}/dashboard`);
+        router.refresh();
+        return;
+      }
+
       router.replace(nextPath);
       router.refresh();
     } finally {
@@ -205,14 +241,49 @@ export function AuthCard({
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           {signup ? "Cadastre-se e crie seu primeiro condomínio em poucos passos." : "Use seu e-mail e senha para continuar."}
         </p>
+        {!signup ? (
+          <div className="mt-6 grid grid-cols-2 rounded-lg border bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setAccountMode("admin")}
+              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+                accountMode === "admin"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Administrador
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountMode("condominium")}
+              className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
+                accountMode === "condominium"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Condomínio
+            </button>
+          </div>
+        ) : null}
+        {signup || accountMode === "admin" ? (
         <div className="mt-6">
           <GoogleAuthButton nextPath={nextPath} />
         </div>
+        ) : null}
+        {signup || accountMode === "admin" ? (
         <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase text-muted-foreground">
           <span className="h-px flex-1 bg-border" />
           ou
           <span className="h-px flex-1 bg-border" />
         </div>
+        ) : (
+          <div className="my-5 rounded-lg border bg-muted p-3 text-sm leading-6 text-muted-foreground">
+            O código é o identificador do condomínio. O síndico ou admin pode
+            informar esse código junto com o convite.
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           {signup ? (
             <>
@@ -225,6 +296,19 @@ export function AuthCard({
                 <Input id="condo" name="condo" placeholder="Residencial Jardim" required />
               </div>
             </>
+          ) : null}
+          {!signup && accountMode === "condominium" ? (
+            <div className="space-y-2">
+              <Label htmlFor="condominium_code">Código do condomínio</Label>
+              <Input
+                id="condominium_code"
+                name="condominium_code"
+                placeholder="ex: residencial-cumbaru"
+                autoCapitalize="none"
+                autoComplete="organization"
+                required
+              />
+            </div>
           ) : null}
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>

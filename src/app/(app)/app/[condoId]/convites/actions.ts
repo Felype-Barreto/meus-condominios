@@ -44,6 +44,12 @@ export async function createResidentInviteAction(
     };
   }
 
+  const { data: condo } = await supabase
+    .from("condominiums")
+    .select("slug")
+    .eq("id", parsed.data.condominium_id)
+    .maybeSingle();
+
   const { data, error } = await supabase.rpc("invite_resident", {
     condo_id: parsed.data.condominium_id,
     invite_role: parsed.data.invite_type,
@@ -69,6 +75,6 @@ export async function createResidentInviteAction(
     status: "success",
     message: "Convite criado.",
     inviteUrl,
-    whatsappText: `Olá! Você recebeu um convite para se cadastrar no Meus Condomínios. Acesse o link e complete seu cadastro: ${inviteUrl}`,
+    whatsappText: `Olá! Você recebeu um convite para se cadastrar no Meus Condomínios. Acesse o link e complete seu cadastro: ${inviteUrl}${condo?.slug ? `\n\nCódigo do condomínio para entrar depois: ${condo.slug}` : ""}`,
   };
 }
