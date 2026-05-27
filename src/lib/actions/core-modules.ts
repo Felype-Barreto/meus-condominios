@@ -256,7 +256,14 @@ export async function createBookingAction(
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
     const { supabase, userId } = await currentUserId();
-    await assertPermission(supabase, parsed.data.condominium_id, userId, "bookings.create");
+    const membership = await getActiveMembershipRole(supabase, parsed.data.condominium_id, userId);
+    if (!membership) throw new Error("Sem acesso ativo a este condomínio.");
+    const canCreateOwnBooking =
+      (membership.role === "resident" || membership.role === "owner") &&
+      membership.apartment_id === parsed.data.apartment_id;
+    if (!canCreateOwnBooking) {
+      await assertPermission(supabase, parsed.data.condominium_id, userId, "bookings.create");
+    }
     await assertResidentApartmentScope(supabase, parsed.data.condominium_id, userId, parsed.data.apartment_id);
     await assertCostAllowed(parsed.data.condominium_id, userId, "bookings.create");
     const data = await createBooking({

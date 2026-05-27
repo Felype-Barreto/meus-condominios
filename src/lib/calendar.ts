@@ -250,11 +250,21 @@ export async function createBooking(input: CreateBookingInput) {
     throw new Error("O horario final precisa ser depois do inicio.");
   }
 
-  const [{ data: subscriber }, { data: canCreate }] = await Promise.all([
+  const [{ data: subscriber }, { data: canCreate }, { data: ownMembership }] = await Promise.all([
     supabase.rpc("is_subscriber_admin", { condo_id: input.condominiumId }),
     supabase.rpc("has_permission", { condo_id: input.condominiumId, permission_key: "bookings.create" }),
+    supabase
+      .from("memberships")
+      .select("id")
+      .eq("condominium_id", input.condominiumId)
+      .eq("user_id", auth.user.id)
+      .eq("apartment_id", input.apartmentId)
+      .eq("status", "active")
+      .in("role", ["resident", "owner"])
+      .limit(1)
+      .maybeSingle(),
   ]);
-  if (!subscriber && !canCreate) throw new Error("Sem permissão para criar reserva.");
+  if (!subscriber && !canCreate && !ownMembership) throw new Error("Sem permissão para criar reserva.");
 
   await validateBookingAdvanceLimit(input.condominiumId, input.startAt);
   const { conflict } = await checkBookingConflict(input.commonAreaId, input.startAt, input.endAt);
