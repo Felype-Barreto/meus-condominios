@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { format, parseISO } from "date-fns";
+import { differenceInMinutes, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckCircle2, Info, Loader2, XCircle } from "lucide-react";
@@ -86,7 +86,8 @@ export function BookingCalendar({
   const [statusFilter, setStatusFilter] = useState("all");
   const [apartmentFilter, setApartmentFilter] = useState("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedSlot, setSelectedSlot] = useState<AvailableTimeSlot | null>(null);
+  const [selectedStartAt, setSelectedStartAt] = useState("");
+  const [selectedEndAt, setSelectedEndAt] = useState("");
   const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null);
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [jumpDate, setJumpDate] = useState<Date>();
@@ -137,6 +138,31 @@ export function BookingCalendar({
   });
   const bookings = eventsQuery.data?.events ?? [];
   const slots = slotsQuery.data?.slots ?? [];
+  const selectedStartSlot = slots.find((slot) => slot.startAt === selectedStartAt);
+  const minDuration = Number(selectedArea?.min_duration_minutes ?? 60);
+  const maxDuration = Number(selectedArea?.max_duration_minutes ?? 240);
+  const availableEndOptions = useMemo(() => {
+    if (!selectedStartAt) return [];
+    const startIndex = slots.findIndex((slot) => slot.startAt === selectedStartAt);
+    if (startIndex < 0) return [];
+
+    const options: AvailableTimeSlot[] = [];
+    for (let index = startIndex; index < slots.length; index += 1) {
+      const slot = slots[index];
+      const range = slots.slice(startIndex, index + 1);
+      if (range.some((item) => !item.available)) break;
+
+      const minutes = differenceInMinutes(parseISO(slot.endAt), parseISO(selectedStartAt));
+      if (minutes >= minDuration && minutes <= maxDuration) {
+        options.push(slot);
+      }
+      if (minutes >= maxDuration) break;
+    }
+
+    return options;
+  }, [maxDuration, minDuration, selectedStartAt, slots]);
+
+  const unavailableSlots = slots.filter((slot) => !slot.available);
 
   useEffect(() => {
     if (state.status !== "success") return;
@@ -177,7 +203,8 @@ export function BookingCalendar({
             value={selectedAreaId}
             onChange={(event) => {
               setSelectedAreaId(event.target.value);
-              setSelectedSlot(null);
+              setSelectedStartAt("");
+              setSelectedEndAt("");
             }}
             className="h-12 rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
           >
@@ -268,42 +295,76 @@ export function BookingCalendar({
                   selected={selectedDate}
                   onSelect={(date) => {
                     setSelectedDate(date);
-                    setSelectedSlot(null);
+                    setSelectedStartAt("");
+                    setSelectedEndAt("");
                   }}
                   locale={ptBR}
                   disabled={disabledDays}
                   className="morai-daypicker"
                 />
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-4 grid gap-3">
                 {slotsQuery.isFetching ? (
-                  <div className="col-span-2 flex min-h-12 items-center gap-2 rounded-lg bg-background px-3 text-sm text-muted-foreground">
+                  <div className="flex min-h-12 items-center gap-2 rounded-lg bg-background px-3 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Buscando horarios livres...
                   </div>
                 ) : null}
-                {slots.map((slot) => (
-                  <button
-                    key={slot.label}
-                    type="button"
-                    disabled={!slot.available}
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`min-h-12 rounded-lg border px-3 text-sm font-semibold ${
-                      selectedSlot?.label === slot.label
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : slot.available
-                          ? "bg-card hover:bg-muted"
-                          : "bg-muted text-muted-foreground opacity-60"
-                    }`}
-                  >
-                    {slot.label}
-                    {!slot.available && slot.reason ? (
-                      <span className="block text-xs font-medium">{slot.reason}</span>
-                    ) : null}
-                  </button>
-                ))}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-2 text-sm font-semibold">
+                    Das
+                    <select
+                      value={selectedStartAt}
+                      onChange={(event) => {
+                        setSelectedStartAt(event.target.value);
+                        setSelectedEndAt("");
+                      }}
+                      className="h-12 w-full rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
+                    >
+                      <option value="">Horario inicial</option>
+                      {slots.filter((slot) => slot.available).map((slot) => (
+                        <option key={slot.startAt} value={slot.startAt}>
+                          {format(parseISO(slot.startAt), "HH:mm")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold">
+                    Ate as
+                    <select
+                      value={selectedEndAt}
+                      onChange={(event) => setSelectedEndAt(event.target.value)}
+                      disabled={!selectedStartAt}
+                      className="h-12 w-full rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 disabled:opacity-60 md:text-sm"
+                    >
+                      <option value="">Horario final</option>
+                      {availableEndOptions.map((slot) => (
+                        <option key={slot.endAt} value={slot.endAt}>
+                          {format(parseISO(slot.endAt), "HH:mm")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {selectedStartSlot && selectedEndAt ? (
+                  <p className="rounded-lg border bg-background p-3 text-sm font-medium">
+                    Reserva selecionada: {format(parseISO(selectedStartAt), "HH:mm")} ate {format(parseISO(selectedEndAt), "HH:mm")}
+                  </p>
+                ) : null}
+                {unavailableSlots.length ? (
+                  <div className="rounded-lg border bg-muted p-3 text-sm text-muted-foreground">
+                    <p className="font-semibold text-foreground">Horarios ocupados ou bloqueados neste dia</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {unavailableSlots.map((slot) => (
+                        <span key={slot.label} className="rounded-full border bg-background px-3 py-1 text-xs">
+                          {slot.label} {slot.reason ? `- ${slot.reason}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 {!slotsQuery.isFetching && !slots.length ? (
-                  <p className="col-span-2 rounded-lg bg-background p-3 text-sm text-muted-foreground">
+                  <p className="rounded-lg bg-background p-3 text-sm text-muted-foreground">
                     Nao ha horarios disponiveis para este dia.
                   </p>
                 ) : null}
@@ -329,10 +390,14 @@ export function BookingCalendar({
               <form action={action} className="mt-4 grid gap-3">
                 <input type="hidden" name="condominium_id" value={condoId} />
                 <input type="hidden" name="common_area_id" value={selectedAreaId} />
-                <input type="hidden" name="start_at" value={selectedSlot?.startAt ?? ""} />
-                <input type="hidden" name="end_at" value={selectedSlot?.endAt ?? ""} />
+                <input type="hidden" name="start_at" value={selectedStartAt} />
+                <input type="hidden" name="end_at" value={selectedEndAt} />
                 <Input name="title" defaultValue={selectedArea?.name ? `Reserva - ${selectedArea.name}` : "Reserva"} />
-                <select name="apartment_id" className="h-12 rounded-lg border bg-card px-3 text-base md:text-sm">
+                <select
+                  name="apartment_id"
+                  defaultValue={!adminMode && apartments.length === 1 ? apartments[0].id : ""}
+                  className="h-12 rounded-lg border bg-card px-3 text-base md:text-sm"
+                >
                   <option value="">Apartamento</option>
                   {apartments.map((apartment) => (
                     <option key={apartment.id} value={apartment.id}>
@@ -345,7 +410,7 @@ export function BookingCalendar({
                   <input required type="checkbox" className="mt-1 accent-[#7C5C3E]" />
                   Li as regras e aceito as condições de uso da área comum.
                 </label>
-                <Button disabled={pending || !selectedSlot}>
+                <Button disabled={pending || !selectedStartAt || !selectedEndAt}>
                   <CheckCircle2 className="h-4 w-4" />
                   {pending ? "Enviando..." : selectedArea?.requires_approval ? "Enviar para aprovação" : "Confirmar reserva"}
                 </Button>

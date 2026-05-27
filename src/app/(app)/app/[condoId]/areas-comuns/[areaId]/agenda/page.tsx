@@ -4,6 +4,7 @@ import type {
   CalendarApartment,
   CalendarArea,
 } from "@/components/app/calendar-types";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function CommonAreaAgendaPage({
@@ -13,6 +14,13 @@ export default async function CommonAreaAgendaPage({
 }) {
   const { condoId, areaId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  const apartmentsQuery = supabase
+    .from("apartments")
+    .select("id,number,blocks(name)")
+    .eq("condominium_id", condoId)
+    .order("number");
+  if (access.isResident && access.apartmentId) apartmentsQuery.eq("id", access.apartmentId);
   const [{ data: area }, { data: apartments }, { data: viewAll }, { data: subscriber }] = await Promise.all([
     supabase
       .from("common_areas")
@@ -20,11 +28,7 @@ export default async function CommonAreaAgendaPage({
       .eq("condominium_id", condoId)
       .eq("id", areaId)
       .single(),
-    supabase
-      .from("apartments")
-      .select("id,number,blocks(name)")
-      .eq("condominium_id", condoId)
-      .order("number"),
+    apartmentsQuery,
     supabase.rpc("has_permission", { condo_id: condoId, permission_key: "bookings.view_all" }),
     supabase.rpc("is_subscriber_admin", { condo_id: condoId }),
   ]);
@@ -49,7 +53,7 @@ export default async function CommonAreaAgendaPage({
         condoId={condoId}
         areas={area ? ([area] as unknown as CalendarArea[]) : []}
         apartments={(apartments ?? []) as unknown as CalendarApartment[]}
-        adminMode={Boolean(viewAll) || Boolean(subscriber)}
+        adminMode={!access.isResident && (Boolean(viewAll) || Boolean(subscriber))}
         focusAreaId={areaId}
       />
     </div>

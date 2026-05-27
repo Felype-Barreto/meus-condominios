@@ -21,7 +21,18 @@ export function safeActionErrorMessage(error: unknown) {
 
   const expectedUserErrors = [
     "apartamento",
+    "area comum",
+    "área comum",
+    "area indispon",
+    "área indispon",
+    "anteced",
+    "data bloqueada",
+    "duracao",
+    "duração",
     "convite",
+    "horario",
+    "horário",
+    "reserva",
     "responsaveis",
     "responsáveis",
     "autenticado",
