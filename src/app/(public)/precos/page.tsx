@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PricingTable } from "@/components/plans/PricingTable";
 import { JsonLd } from "@/components/seo/json-ld";
-import { createSeoMetadata, softwareApplicationJsonLd } from "@/lib/seo";
+import { createSeoMetadata, pricingOfferCatalogJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = createSeoMetadata({
   title: "Preços do Meus Condomínios para condomínios",
@@ -15,6 +15,7 @@ export default function PricingPage() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <JsonLd data={softwareApplicationJsonLd()} />
+      <JsonLd data={pricingOfferCatalogJsonLd()} />
       <p className="text-sm font-semibold text-primary">Preços</p>
       <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-normal md:text-5xl">
         Planos claros para condomínios em crescimento.

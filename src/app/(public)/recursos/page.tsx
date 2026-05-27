@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FeaturePage } from "@/components/public/feature-page";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Card } from "@/components/ui/card";
 import { featurePages } from "@/lib/public-content";
-import { createSeoMetadata } from "@/lib/seo";
+import { createSeoMetadata, itemListJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = createSeoMetadata({
   title: "Recursos do Meus Condomínios para gestão de condomínio online",
@@ -20,6 +21,15 @@ export default function RecursosPage() {
 
   return (
     <>
+      <JsonLd
+        data={itemListJsonLd(
+          pages.map((page) => ({
+            name: page.title,
+            path: page.path,
+            description: page.description,
+          })),
+        )}
+      />
       <FeaturePage
         eyebrow="Recursos"
         title={main.title}

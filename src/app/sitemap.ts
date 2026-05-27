@@ -1,18 +1,10 @@
 import type { MetadataRoute } from "next";
+import { blogPosts, featurePages } from "@/lib/public-content";
 import { absoluteUrl } from "@/lib/seo";
 
 const publicRoutes = [
   "/",
   "/precos",
-  "/recursos",
-  "/recursos/comunicados",
-  "/recursos/agendamentos",
-  "/recursos/encomendas",
-  "/recursos/guarita",
-  "/recursos/qr-code-condominio",
-  "/recursos/sindico",
-  "/recursos/moradores",
-  "/recursos/comunicacao-whatsapp",
   "/comparativo/whatsapp-condominio",
   "/seguranca",
   "/confianca",
@@ -29,18 +21,18 @@ const publicRoutes = [
   "/contato",
   "/suporte",
   "/demo",
-  "/blog",
-  "/blog/sistema-para-condominio",
-  "/blog/app-para-sindico",
-  "/blog/como-organizar-comunicacao-condominio",
-  "/blog/controle-de-encomendas-condominio",
-  "/blog/reserva-de-salao-de-festas-online",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date("2026-05-19");
+  const routes = [
+    ...publicRoutes,
+    ...Object.values(featurePages).map((page) => page.path),
+    "/blog",
+    ...Object.values(blogPosts).map((post) => post.path),
+  ];
 
-  return publicRoutes.map((route) => ({
+  return Array.from(new Set(routes)).map((route) => ({
     url: absoluteUrl(route),
     lastModified,
     changeFrequency: route === "/" ? "weekly" : "monthly",

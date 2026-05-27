@@ -80,7 +80,7 @@ export function softwareApplicationJsonLd() {
       "@type": "AggregateOffer",
       priceCurrency: "BRL",
       lowPrice: "0",
-      highPrice: "249.90",
+      highPrice: "39.90",
     },
   };
 }
@@ -121,6 +121,47 @@ export function faqJsonLd(items: FaqItem[]) {
         text: item.answer,
       },
     })),
+  };
+}
+
+export function itemListJsonLd(items: Array<{ name: string; path: string; description?: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: absoluteUrl(item.path),
+      name: item.name,
+      description: item.description,
+    })),
+  };
+}
+
+export function pricingOfferCatalogJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "OfferCatalog",
+    name: `Planos ${siteName}`,
+    url: absoluteUrl("/precos"),
+    itemListElement: [
+      {
+        "@type": "Offer",
+        name: "Plano Gratis",
+        price: "0",
+        priceCurrency: "BRL",
+        availability: "https://schema.org/InStock",
+        url: absoluteUrl("/cadastro?next=%2Fapp%2Fnovo-condominio"),
+      },
+      {
+        "@type": "Offer",
+        name: "Plano Premium",
+        price: "39.90",
+        priceCurrency: "BRL",
+        availability: "https://schema.org/InStock",
+        url: absoluteUrl("/entrar?next=%2Fapp%2Fassinatura%2Fcheckout%3Fplano%3Dpremium"),
+      },
+    ],
   };
 }
 

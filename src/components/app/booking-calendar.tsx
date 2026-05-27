@@ -62,6 +62,14 @@ const statusTone: Record<string, "success" | "warning" | "error" | "neutral"> = 
   blocked: "neutral",
 };
 
+function slotStartLabel(slot: AvailableTimeSlot) {
+  return slot.label.split(" - ")[0] ?? slot.label;
+}
+
+function slotEndLabel(slot: AvailableTimeSlot) {
+  return slot.label.split(" - ")[1] ?? slot.label;
+}
+
 async function readJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { cache: "no-store" });
   const body = (await response.json()) as T & { error?: string };
@@ -162,6 +170,7 @@ export function BookingCalendar({
     return options;
   }, [maxDuration, minDuration, selectedStartAt, slots]);
 
+  const selectedEndSlot = availableEndOptions.find((slot) => slot.endAt === selectedEndAt);
   const unavailableSlots = slots.filter((slot) => !slot.available);
 
   useEffect(() => {
@@ -324,7 +333,7 @@ export function BookingCalendar({
                       <option value="">Horario inicial</option>
                       {slots.filter((slot) => slot.available).map((slot) => (
                         <option key={slot.startAt} value={slot.startAt}>
-                          {format(parseISO(slot.startAt), "HH:mm")}
+                          {slotStartLabel(slot)}
                         </option>
                       ))}
                     </select>
@@ -340,15 +349,15 @@ export function BookingCalendar({
                       <option value="">Horario final</option>
                       {availableEndOptions.map((slot) => (
                         <option key={slot.endAt} value={slot.endAt}>
-                          {format(parseISO(slot.endAt), "HH:mm")}
+                          {slotEndLabel(slot)}
                         </option>
                       ))}
                     </select>
                   </label>
                 </div>
-                {selectedStartSlot && selectedEndAt ? (
+                {selectedStartSlot && selectedEndSlot ? (
                   <p className="rounded-lg border bg-background p-3 text-sm font-medium">
-                    Reserva selecionada: {format(parseISO(selectedStartAt), "HH:mm")} ate {format(parseISO(selectedEndAt), "HH:mm")}
+                    Reserva selecionada: {slotStartLabel(selectedStartSlot)} ate {slotEndLabel(selectedEndSlot)}
                   </p>
                 ) : null}
                 {unavailableSlots.length ? (
