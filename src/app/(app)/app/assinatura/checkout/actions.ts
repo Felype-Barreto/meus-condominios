@@ -98,7 +98,8 @@ export async function startPremiumCheckout(formData: FormData) {
 
     if (
       existingPaymentUrl &&
-      existingBillingType !== "PIX" &&
+      existingBillingType === checkout.billingType &&
+      checkout.billingType !== "PIX" &&
       ["paused", "past_due"].includes(localSubscription.status)
     ) {
       redirect(existingPaymentUrl);
