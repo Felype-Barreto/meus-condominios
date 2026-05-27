@@ -26,6 +26,12 @@ type AsaasPaymentResponse = {
   pixTransaction?: string;
 };
 
+export type AsaasPixQrCodeResponse = {
+  encodedImage?: string;
+  payload?: string;
+  expirationDate?: string;
+};
+
 export type AsaasPayment = {
   id?: string;
   customer?: string;
@@ -183,6 +189,15 @@ export async function createAsaasPremiumPayment(input: {
 export async function getAsaasSubscriptionPayments(subscriptionId: string) {
   return asaasRequest<{ data?: AsaasPayment[] }>(
     `/subscriptions/${encodeURIComponent(subscriptionId)}/payments`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function getAsaasPaymentPixQrCode(paymentId: string) {
+  return asaasRequest<AsaasPixQrCodeResponse>(
+    `/payments/${encodeURIComponent(paymentId)}/pixQrCode`,
     {
       method: "GET",
     },

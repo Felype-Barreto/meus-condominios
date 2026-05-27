@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   createAsaasCustomer,
   createAsaasPremiumPayment,
+  getAsaasPaymentPixQrCode,
 } from "@/lib/billing/asaas";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -90,8 +91,16 @@ export async function startPremiumCheckout(formData: FormData) {
       typeof metadata.checkout_invoice_url === "string"
         ? metadata.checkout_invoice_url
         : null;
+    const existingBillingType =
+      typeof metadata.billing_type === "string"
+        ? metadata.billing_type
+        : null;
 
-    if (existingPaymentUrl && ["paused", "past_due"].includes(localSubscription.status)) {
+    if (
+      existingPaymentUrl &&
+      existingBillingType !== "PIX" &&
+      ["paused", "past_due"].includes(localSubscription.status)
+    ) {
       redirect(existingPaymentUrl);
     }
 
@@ -118,6 +127,12 @@ export async function startPremiumCheckout(formData: FormData) {
     });
 
     paymentUrl = asaasPayment.invoiceUrl ?? asaasPayment.bankSlipUrl ?? null;
+    let pixQrCodeAvailable = false;
+    if (checkout.billingType === "PIX") {
+      const pixQrCode = await getAsaasPaymentPixQrCode(asaasPayment.id);
+      pixQrCodeAvailable = Boolean(pixQrCode.payload || pixQrCode.encodedImage);
+      paymentUrl = "/app/assinatura/pix";
+    }
 
     await adminSupabase
       .from("subscriptions")
@@ -129,7 +144,11 @@ export async function startPremiumCheckout(formData: FormData) {
           ...metadata,
           asaas_customer_id: customerId,
           checkout_payment_id: asaasPayment.id,
-          checkout_invoice_url: paymentUrl ?? null,
+          checkout_invoice_url:
+            checkout.billingType === "PIX"
+              ? asaasPayment.invoiceUrl ?? null
+              : paymentUrl ?? null,
+          checkout_pix_available: pixQrCodeAvailable,
           billing_type: checkout.billingType,
         },
       })
