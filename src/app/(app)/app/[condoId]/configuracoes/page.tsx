@@ -1,11 +1,13 @@
 import { AlertTriangle, LogOut, MessageCircle, QrCode, Settings, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/(app)/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { updateMyProfileAction, updateResidentApprovalModeAction } from "./actions";
 
@@ -16,6 +18,8 @@ export default async function SettingsPage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -1,11 +1,13 @@
 import { CreditCard } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { UpgradeBanner } from "@/components/app/upgrade-banner";
 import { PricingTable } from "@/components/plans/PricingTable";
 import { PlanLimitAlert } from "@/components/plans/PlanLimitAlert";
 import { PlanUsageMeter } from "@/components/plans/PlanUsageMeter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { getCostRisk } from "@/lib/cost-control";
 import { getCurrentUsage } from "@/lib/plans";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -37,6 +39,8 @@ export default async function SubscriptionPage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (!access.isAdmin) redirect(`/app/${condoId}/dashboard`);
   const [{ data: condo }, usage, whatsAppUsage, { data: billingEvents }, { data: refunds }, costRisk] = await Promise.all([
     supabase
       .from("condominiums")

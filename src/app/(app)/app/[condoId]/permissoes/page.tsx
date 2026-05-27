@@ -1,4 +1,6 @@
 import { PermissionsEditor } from "@/components/permissions/PermissionsEditor";
+import { redirect } from "next/navigation";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import {
   editableRoles,
   rolePermissionPresets,
@@ -20,6 +22,8 @@ export default async function PermissionsPage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
 
   const [
     { data: condo },

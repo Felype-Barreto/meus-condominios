@@ -1,5 +1,6 @@
 ﻿import { CalendarDays, Mail, ShieldCheck, UserRoundCheck } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PermissionToggle } from "@/components/app/permission-toggle";
 import { RoleBadge } from "@/components/common/role-badge";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { defaultSyndicPermissions } from "@/lib/permissions";
 import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -43,6 +45,8 @@ export default async function SyndicPage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
 
   const [{ data: condo }, { data: memberships }, { data: profiles }, { data: invites }] =
     await Promise.all([
