@@ -75,6 +75,22 @@ function getContactLabel(row: PersonRow, phoneVisible: boolean) {
   return phoneVisible ? phone : "Oculto";
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("pt-BR");
+}
+
+function apartmentLabel(row: PersonRow) {
+  if (!row.apartments?.number) return "-";
+  return `${row.apartments.blocks?.name ?? "Bloco"} - ${row.apartments.number}`;
+}
+
+function sameApartmentPeople(row: PersonRow, rows: PersonRow[]) {
+  const apartmentId = row.apartments?.id;
+  if (!apartmentId) return [];
+  return rows.filter((item) => item.id !== row.id && item.apartments?.id === apartmentId);
+}
+
 function FilterPanel({
   title,
   children,
@@ -291,25 +307,26 @@ export default async function PeoplePage({
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-sm">
-            <thead className="bg-muted/70 text-left">
+          <table className="w-full min-w-[1120px] table-fixed border-collapse text-xs">
+            <thead className="bg-muted/70 text-left text-[0.72rem] uppercase text-muted-foreground">
               <tr className="border-b">
-                <th className="px-4 py-3 font-semibold">
+                <th className="w-14 px-3 py-2 font-semibold">Nº</th>
+                <th className="w-32 px-3 py-2 font-semibold">
                   <FilterPanel title="Tipo">
                     <SelectFilter filters={filters} name="tipo" options={[...roleOptions]} />
                   </FilterPanel>
                 </th>
-                <th className="px-4 py-3 font-semibold">
+                <th className="w-56 px-3 py-2 font-semibold">
                   <FilterPanel title="Nome">
                     <NameFilter filters={filters} />
                   </FilterPanel>
                 </th>
-                <th className="px-4 py-3 font-semibold">
+                <th className="w-36 px-3 py-2 font-semibold">
                   <FilterPanel title="Bloco">
                     <SelectFilter filters={filters} name="bloco" options={[["", "Todos"], ...blockOptions]} />
                   </FilterPanel>
                 </th>
-                <th className="px-4 py-3 font-semibold">
+                <th className="w-36 px-3 py-2 font-semibold">
                   <FilterPanel title="Apartamento">
                     <SelectFilter
                       filters={filters}
@@ -324,9 +341,9 @@ export default async function PeoplePage({
                     />
                   </FilterPanel>
                 </th>
-                <th className="px-4 py-3 font-semibold">E-mail</th>
-                <th className="px-4 py-3 font-semibold">Telefone</th>
-                <th className="px-4 py-3 font-semibold">
+                <th className="w-56 px-3 py-2 font-semibold">E-mail</th>
+                <th className="w-36 px-3 py-2 font-semibold">Telefone</th>
+                <th className="w-28 px-3 py-2 font-semibold">
                   <FilterPanel title="Status">
                     <SelectFilter
                       filters={filters}
@@ -339,110 +356,172 @@ export default async function PeoplePage({
                     />
                   </FilterPanel>
                 </th>
-                <th className="px-4 py-3 font-semibold">Editar</th>
-                <th className="px-4 py-3 font-semibold">Excluir</th>
               </tr>
             </thead>
             <tbody>
               {rows.length ? (
-                rows.map((row) => {
+                rows.map((row, index) => {
                   const canSetResponsible = row.apartments?.id && ["resident", "owner"].includes(row.role);
+                  const modalId = `person-${row.id}`;
+                  const housemates = sameApartmentPeople(row, rows);
                   return (
-                    <tr key={row.id} className="border-b transition hover:bg-muted/45">
-                      <td className="px-4 py-3">
+                    <tr key={row.id} className="h-11 border-b transition hover:bg-muted/45">
+                      <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{index + 1}</td>
+                      <td className="whitespace-nowrap px-3 py-2">
                         <RoleBadge role={row.role} />
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex min-w-0 items-center gap-2">
+                      <td className="px-3 py-2">
+                        <input id={modalId} type="checkbox" className="peer sr-only" />
+                        <label
+                          htmlFor={modalId}
+                          className="flex min-w-0 cursor-pointer items-center gap-2 whitespace-nowrap font-semibold hover:text-primary"
+                        >
                           {isResponsible(row) ? (
-                            <span title="Responsável do apartamento">
-                              <Star className="h-4 w-4 fill-primary text-primary" />
+                            <span title="Responsavel do apartamento">
+                              <Star className="h-4 w-4 shrink-0 fill-primary text-primary" />
                             </span>
                           ) : null}
-                          <span className="font-semibold">{row.profiles?.full_name ?? "Sem nome"}</span>
+                          <span className="truncate">{row.profiles?.full_name ?? "Sem nome"}</span>
+                        </label>
+                        <div className="fixed inset-0 z-50 hidden bg-black/55 p-4 peer-checked:block">
+                          <div className="mx-auto mt-10 max-h-[82vh] w-full max-w-2xl overflow-y-auto rounded-xl border bg-card p-5 shadow-2xl">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase text-primary">{roleLabel(row.role)}</p>
+                                <h2 className="mt-1 text-2xl font-semibold">{row.profiles?.full_name ?? "Sem nome"}</h2>
+                                <p className="mt-1 text-sm text-muted-foreground">{apartmentLabel(row)}</p>
+                              </div>
+                              <label
+                                htmlFor={modalId}
+                                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border hover:bg-muted"
+                                aria-label="Fechar detalhes"
+                              >
+                                <X className="h-4 w-4" />
+                              </label>
+                            </div>
+
+                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                              <div className="rounded-lg border bg-background p-3">
+                                <p className="text-xs text-muted-foreground">E-mail</p>
+                                <p className="mt-1 break-all font-semibold">{row.profiles?.email ?? "Nao informado"}</p>
+                              </div>
+                              <div className="rounded-lg border bg-background p-3">
+                                <p className="text-xs text-muted-foreground">Telefone</p>
+                                <p className="mt-1 font-semibold">{getContactLabel(row, phoneVisible)}</p>
+                              </div>
+                              <div className="rounded-lg border bg-background p-3">
+                                <p className="text-xs text-muted-foreground">Status</p>
+                                <p className="mt-1 font-semibold">{row.status === "active" ? "Ativo" : row.status === "pending" ? "Pendente" : row.status}</p>
+                              </div>
+                              <div className="rounded-lg border bg-background p-3">
+                                <p className="text-xs text-muted-foreground">Criado em</p>
+                                <p className="mt-1 font-semibold">{formatDate(row.created_at)}</p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 rounded-lg border bg-background p-3">
+                              <p className="text-sm font-semibold">Mora com</p>
+                              <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                                {housemates.length ? (
+                                  housemates.map((person) => (
+                                    <p key={person.id}>
+                                      {person.profiles?.full_name ?? "Sem nome"} - {roleLabel(person.role)}
+                                    </p>
+                                  ))
+                                ) : (
+                                  <p>Nenhuma outra pessoa deste apartamento apareceu na lista atual.</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-4 rounded-lg border bg-background p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold">Chat interno</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    Mensagens simples de texto, com retencao de ate 3 dias para reduzir custo e exposicao de dados.
+                                  </p>
+                                </div>
+                                <Button type="button" size="sm" disabled variant="outline">
+                                  Em breve
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="mt-5 flex flex-wrap gap-2">
+                              {row.status === "pending" && ["resident", "owner"].includes(row.role) ? (
+                                <>
+                                  <form action={reviewResidentMembershipAction}>
+                                    <input type="hidden" name="condominium_id" value={condoId} />
+                                    <input type="hidden" name="membership_id" value={row.id} />
+                                    <input type="hidden" name="decision" value="approve" />
+                                    <Button type="submit" size="sm">
+                                      <Check className="h-4 w-4" />
+                                      Aprovar
+                                    </Button>
+                                  </form>
+                                  <form action={reviewResidentMembershipAction}>
+                                    <input type="hidden" name="condominium_id" value={condoId} />
+                                    <input type="hidden" name="membership_id" value={row.id} />
+                                    <input type="hidden" name="decision" value="reject" />
+                                    <Button type="submit" size="sm" variant="outline">
+                                      <X className="h-4 w-4" />
+                                      Rejeitar
+                                    </Button>
+                                  </form>
+                                </>
+                              ) : null}
+                              {canSetResponsible ? (
+                                <form action={setApartmentResponsibleAction}>
+                                  <input type="hidden" name="condominium_id" value={condoId} />
+                                  <input type="hidden" name="membership_id" value={row.id} />
+                                  <Button type="submit" size="sm" variant={isResponsible(row) ? "default" : "outline"}>
+                                    Responsavel
+                                  </Button>
+                                </form>
+                              ) : null}
+                              {row.role !== "subscriber_admin" && row.profiles?.email ? (
+                                <form action={sendPasswordResetForPersonAction}>
+                                  <input type="hidden" name="condominium_id" value={condoId} />
+                                  <input type="hidden" name="membership_id" value={row.id} />
+                                  <Button type="submit" size="sm" variant="outline">
+                                    Redefinir senha
+                                  </Button>
+                                </form>
+                              ) : null}
+                              {row.role !== "subscriber_admin" ? (
+                                <form action={removePersonMembershipAction}>
+                                  <input type="hidden" name="condominium_id" value={condoId} />
+                                  <input type="hidden" name="membership_id" value={row.id} />
+                                  <Button type="submit" size="sm" variant="outline">
+                                    <Trash2 className="h-4 w-4" />
+                                    Excluir
+                                  </Button>
+                                </form>
+                              ) : null}
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{row.apartments?.blocks?.name ?? "-"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{row.apartments?.number ?? "-"}</td>
-                      <td className="px-4 py-3 break-all text-muted-foreground">
-                        {row.profiles?.email ?? "Não informado"}
+                      <td className="truncate whitespace-nowrap px-3 py-2 text-muted-foreground">{row.apartments?.blocks?.name ?? "-"}</td>
+                      <td className="truncate whitespace-nowrap px-3 py-2 text-muted-foreground">{row.apartments?.number ?? "-"}</td>
+                      <td className="truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
+                        {row.profiles?.email ?? "Nao informado"}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{getContactLabel(row, phoneVisible)}</td>
-                      <td className="px-4 py-3">
+                      <td className="truncate whitespace-nowrap px-3 py-2 text-muted-foreground">{getContactLabel(row, phoneVisible)}</td>
+                      <td className="whitespace-nowrap px-3 py-2">
                         <StatusBadge
                           tone={row.status === "active" ? "success" : row.status === "pending" ? "warning" : "neutral"}
                         >
                           {row.status === "active" ? "Ativo" : row.status === "pending" ? "Pendente" : row.status}
                         </StatusBadge>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          {row.status === "pending" && ["resident", "owner"].includes(row.role) ? (
-                            <>
-                              <form action={reviewResidentMembershipAction}>
-                                <input type="hidden" name="condominium_id" value={condoId} />
-                                <input type="hidden" name="membership_id" value={row.id} />
-                                <input type="hidden" name="decision" value="approve" />
-                                <Button type="submit" size="sm" aria-label="Aprovar cadastro">
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                              </form>
-                              <form action={reviewResidentMembershipAction}>
-                                <input type="hidden" name="condominium_id" value={condoId} />
-                                <input type="hidden" name="membership_id" value={row.id} />
-                                <input type="hidden" name="decision" value="reject" />
-                                <Button type="submit" size="sm" variant="outline" aria-label="Rejeitar cadastro">
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </form>
-                            </>
-                          ) : null}
-                          {canSetResponsible ? (
-                            <form action={setApartmentResponsibleAction}>
-                              <input type="hidden" name="condominium_id" value={condoId} />
-                              <input type="hidden" name="membership_id" value={row.id} />
-                              <Button type="submit" size="sm" variant={isResponsible(row) ? "default" : "outline"}>
-                                Responsável
-                              </Button>
-                            </form>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-                          {row.role !== "subscriber_admin" && row.profiles?.email ? (
-                            <form action={sendPasswordResetForPersonAction}>
-                              <input type="hidden" name="condominium_id" value={condoId} />
-                              <input type="hidden" name="membership_id" value={row.id} />
-                              <Button
-                                type="submit"
-                                size="sm"
-                                variant="outline"
-                                title="Enviar link de redefinição de senha"
-                              >
-                                Redefinir senha
-                              </Button>
-                            </form>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.role !== "subscriber_admin" ? (
-                          <form action={removePersonMembershipAction}>
-                            <input type="hidden" name="condominium_id" value={condoId} />
-                            <input type="hidden" name="membership_id" value={row.id} />
-                            <Button type="submit" size="sm" variant="outline" aria-label="Remover acesso">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </form>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     Nenhuma pessoa encontrada com os filtros atuais.
                   </td>
                 </tr>
