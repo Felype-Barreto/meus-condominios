@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     "SaaS simples, seguro e moderno para gestão de condomínios, moradores, guarita, convites e permissões.",
   metadataBase: new URL("https://meuscondominios.site"),
   applicationName: "Meus Condomínios",
+  verification: {
+    google: "AuMfEpCsy1czoDNDCxZOC7YpIcqbHs5EyweTXkpIgFA",
+  },
   appleWebApp: {
     capable: true,
     title: "Meus Condomínios",

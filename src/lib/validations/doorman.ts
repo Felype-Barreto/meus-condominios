@@ -11,7 +11,7 @@ export const acceptDoormanInviteSchema = z.object({
   full_name: z.string().min(2, "Informe seu nome."),
   email: z.string().email("Informe um e-mail válido."),
   phone: z.string().optional(),
-  password: z.string().min(8, "A senha precisa ter pelo menos 8 caracteres.").optional(),
+  password: z.string().min(8, "A senha precisa ter pelo menos 8 caracteres."),
   terms: z.literal("on", {
     error: "Você precisa aceitar os termos.",
   }),

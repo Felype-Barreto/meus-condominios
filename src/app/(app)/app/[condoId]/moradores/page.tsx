@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { reviewResidentMembershipAction } from "./actions";
+import { removeResidentMembershipAction, reviewResidentMembershipAction } from "./actions";
 
 type MembershipRow = {
   id: string;
@@ -82,8 +82,9 @@ function ResidentCard({
             E-mail: {membership.profiles?.email ?? "não informado"}
           </p>
         </div>
-        {pending ? (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {pending ? (
+            <>
             <form action={reviewResidentMembershipAction}>
               <input type="hidden" name="condominium_id" value={condoId} />
               <input type="hidden" name="membership_id" value={membership.id} />
@@ -102,8 +103,17 @@ function ResidentCard({
                 Rejeitar
               </Button>
             </form>
-          </div>
-        ) : null}
+            </>
+          ) : null}
+          <form action={removeResidentMembershipAction}>
+            <input type="hidden" name="condominium_id" value={condoId} />
+            <input type="hidden" name="membership_id" value={membership.id} />
+            <Button type="submit" size="sm" variant="outline">
+              <X className="h-4 w-4" />
+              Remover acesso
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,6 @@ import {
   acceptResidentInviteAction,
   type AcceptInviteState,
 } from "@/app/(public)/convite/[token]/actions";
-import { GoogleAuthButton } from "@/components/public/google-auth-button";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,18 +29,12 @@ export function ResidentInviteForm({
   token,
   condominiumName,
   invitedEmail,
-  currentUserEmail,
-  currentUserName,
-  emailVerified,
   inviteType,
   apartments,
 }: {
   token: string;
   condominiumName: string;
   invitedEmail?: string;
-  currentUserEmail?: string;
-  currentUserName?: string;
-  emailVerified?: boolean;
   inviteType: "resident" | "owner";
   apartments: ApartmentOption[];
 }) {
@@ -49,8 +42,6 @@ export function ResidentInviteForm({
     acceptResidentInviteAction,
     initialState,
   );
-  const loggedIn = Boolean(currentUserEmail);
-  const fixedEmail = invitedEmail ?? currentUserEmail;
   const inviteTypeLabel = inviteType === "owner" ? "Proprietário" : "Morador";
 
   if (state.submitted) {
@@ -74,28 +65,13 @@ export function ResidentInviteForm({
         até aprovação da administração.
       </p>
 
-      {loggedIn ? (
-        <div className="mt-5 rounded-lg border bg-muted p-4 text-sm">
-          <p className="font-semibold">Conta conectada</p>
-          <p className="mt-1 text-muted-foreground">
-            Você está usando {currentUserEmail}.{" "}
-            {emailVerified
-              ? "E-mail verificado."
-              : "A confirmação de e-mail fica recomendada para segurança."}{" "}
-            Como esta conta já está conectada, não é necessário criar nova senha.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-5 space-y-3 rounded-lg border bg-muted p-4 text-sm">
-          <div>
-            <p className="font-semibold">Cadastro com Gmail recomendado</p>
-            <p className="mt-1 text-muted-foreground">
-              O link continua preso a este convite. Depois do Gmail, você volta para esta tela para concluir o cadastro.
-            </p>
-          </div>
-          <GoogleAuthButton nextPath={`/convite/${token}`} label="Cadastrar com Gmail" />
-        </div>
-      )}
+      <div className="mt-5 rounded-lg border bg-muted p-4 text-sm">
+        <p className="font-semibold">Cadastro simples por convite</p>
+        <p className="mt-1 text-muted-foreground">
+          Use e-mail e senha para entrar depois na opção "Condomínio". Este cadastro não usa Gmail
+          e não depende da conta administradora que possa estar salva no navegador.
+        </p>
+      </div>
 
       {state.status === "error" ? (
         <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-destructive">
@@ -108,7 +84,7 @@ export function ResidentInviteForm({
         <input type="hidden" name="membership_kind" value={inviteType} />
         <div className="space-y-2">
           <Label htmlFor="full_name">Nome completo</Label>
-          <Input id="full_name" name="full_name" placeholder="Seu nome completo" defaultValue={currentUserName} />
+          <Input id="full_name" name="full_name" placeholder="Seu nome completo" />
           <FieldError errors={state.fieldErrors?.full_name} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -118,8 +94,9 @@ export function ResidentInviteForm({
               id="email"
               name="email"
               type="email"
-              defaultValue={fixedEmail}
+              defaultValue={invitedEmail}
               readOnly={Boolean(invitedEmail)}
+              placeholder="voce@email.com"
             />
             <FieldError errors={state.fieldErrors?.email} />
           </div>
@@ -129,13 +106,11 @@ export function ResidentInviteForm({
             <FieldError errors={state.fieldErrors?.phone} />
           </div>
         </div>
-        {!loggedIn ? (
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha, se preferir cadastrar por e-mail</Label>
-            <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" />
-            <FieldError errors={state.fieldErrors?.password} />
-          </div>
-        ) : null}
+        <div className="space-y-2">
+          <Label htmlFor="password">Senha para entrar depois</Label>
+          <Input id="password" name="password" type="password" placeholder="Mínimo 8 caracteres" />
+          <FieldError errors={state.fieldErrors?.password} />
+        </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="apartment_id">Bloco e apartamento</Label>

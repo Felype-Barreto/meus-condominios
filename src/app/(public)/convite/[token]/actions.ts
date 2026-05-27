@@ -1,5 +1,6 @@
-"use server";
+﻿"use server";
 
+import type { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getPublicAppUrl } from "@/lib/public-url";
@@ -36,6 +37,108 @@ function inviteEmailError(expectedEmail: string) {
   return `Este convite foi emitido para ${expectedEmail}. Saia da conta atual ou entre com esse e-mail para concluir o cadastro.`;
 }
 
+async function ensureInvitePasswordUser(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  input: {
+    email: string;
+    password: string;
+    token: string;
+    fullName: string;
+    phone?: string | null;
+  },
+): Promise<{ user: User } | { state: AcceptInviteState }> {
+  const submittedEmail = normalizeEmail(input.email);
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+
+  if (currentUser && normalizeEmail(currentUser.email) !== submittedEmail) {
+    await supabase.auth.signOut();
+  }
+
+  if (currentUser && normalizeEmail(currentUser.email) === submittedEmail) {
+    return { user: currentUser };
+  }
+
+  const signInResult = await supabase.auth.signInWithPassword({
+    email: input.email,
+    password: input.password,
+  });
+
+  if (signInResult.data.user) {
+    return { user: signInResult.data.user };
+  }
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email: input.email,
+    password: input.password,
+    options: {
+      emailRedirectTo: `${await getRequestOrigin()}/convite/${input.token}`,
+      data: {
+        full_name: input.fullName,
+        phone: input.phone ?? "",
+      },
+    },
+  });
+
+  if (signUpError) {
+    const lower = signUpError.message.toLowerCase();
+    if (lower.includes("already") || lower.includes("registered") || lower.includes("exists")) {
+      return {
+        state: {
+          status: "error",
+          message:
+            "Este e-mail já tem uma conta. Informe a senha dessa conta ou recupere a senha para concluir o convite.",
+        },
+      };
+    }
+
+    return { state: { status: "error", message: safeActionErrorMessage(signUpError) } };
+  }
+
+  const userResponse = await supabase.auth.getUser();
+  if (userResponse.data.user) {
+    return { user: userResponse.data.user };
+  }
+
+  const retrySignIn = await supabase.auth.signInWithPassword({
+    email: input.email,
+    password: input.password,
+  });
+
+  if (retrySignIn.data.user) {
+    return { user: retrySignIn.data.user };
+  }
+
+  const retryMessage = retrySignIn.error?.message.toLowerCase() ?? "";
+  if (retryMessage.includes("email not confirmed") || retryMessage.includes("confirm")) {
+    return {
+      state: {
+        status: "error",
+        message:
+          "Conta criada. Confirme seu e-mail e abra este convite novamente para concluir o cadastro.",
+      },
+    };
+  }
+
+  if (signUpData.user) {
+    return {
+      state: {
+        status: "error",
+        message:
+          "Conta criada, mas ainda não foi possível iniciar a sessão. Entre com e-mail e senha e abra o convite novamente.",
+      },
+    };
+  }
+
+  return {
+    state: {
+      status: "error",
+      message: "Não foi possível criar ou entrar na conta do convite agora.",
+    },
+  };
+}
+
 async function getInviteIdentity(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   token: string,
@@ -63,7 +166,7 @@ export async function acceptSyndicInviteAction(
     full_name: String(formData.get("full_name") ?? ""),
     email: String(formData.get("email") ?? ""),
     phone: String(formData.get("phone") ?? ""),
-    password: String(formData.get("password") ?? "") || undefined,
+    password: String(formData.get("password") ?? ""),
     professional_note: String(formData.get("professional_note") ?? ""),
     start_date: String(formData.get("start_date") ?? ""),
     terms: formData.get("terms"),
@@ -92,56 +195,15 @@ export async function acceptSyndicInviteAction(
     };
   }
 
-  let {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const inviteUserResult = await ensureInvitePasswordUser(supabase, {
+    email: parsed.data.email,
+    password: parsed.data.password,
+    token: parsed.data.token,
+    fullName: parsed.data.full_name,
+    phone: parsed.data.phone,
+  });
 
-  const connectedEmail = normalizeEmail(user?.email);
-  if (user && connectedEmail !== submittedEmail) {
-    return {
-      status: "error",
-      message: `Este navegador está conectado como ${user.email}. Saia dessa conta para cadastrar ${parsed.data.email}.`,
-    };
-  }
-
-  if (!user) {
-    if (!parsed.data.password) {
-      return {
-        status: "error",
-        message: "Informe uma senha para criar sua conta.",
-      };
-    }
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${await getRequestOrigin()}/convite/${parsed.data.token}`,
-        data: {
-          full_name: parsed.data.full_name,
-          phone: parsed.data.phone,
-        },
-      },
-    });
-
-    if (signUpError) {
-      return {
-        status: "error",
-        message: safeActionErrorMessage(signUpError),
-      };
-    }
-
-    const userResponse = await supabase.auth.getUser();
-    user = userResponse.data.user;
-  }
-
-  if (!user) {
-    return {
-      status: "error",
-      message:
-        "Conta criada. Confirme seu e-mail e abra o convite novamente para concluir.",
-    };
-  }
+  if ("state" in inviteUserResult) return inviteUserResult.state;
 
   const { data, error } = await supabase.rpc("accept_syndic_invite", {
     invite_token: parsed.data.token,
@@ -174,7 +236,7 @@ export async function acceptDoormanInviteAction(
     full_name: String(formData.get("full_name") ?? ""),
     email: String(formData.get("email") ?? ""),
     phone: String(formData.get("phone") ?? ""),
-    password: String(formData.get("password") ?? "") || undefined,
+    password: String(formData.get("password") ?? ""),
     terms: formData.get("terms"),
     acceptable_use: formData.get("acceptable_use"),
   });
@@ -199,50 +261,15 @@ export async function acceptDoormanInviteAction(
     };
   }
 
-  let {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const inviteUserResult = await ensureInvitePasswordUser(supabase, {
+    email: parsed.data.email,
+    password: parsed.data.password,
+    token: parsed.data.token,
+    fullName: parsed.data.full_name,
+    phone: parsed.data.phone,
+  });
 
-  const connectedEmail = normalizeEmail(user?.email);
-  if (user && connectedEmail !== submittedEmail) {
-    return {
-      status: "error",
-      message: `Este navegador está conectado como ${user.email}. Saia dessa conta para cadastrar ${parsed.data.email}.`,
-    };
-  }
-
-  if (!user) {
-    if (!parsed.data.password) {
-      return { status: "error", message: "Informe uma senha para criar sua conta." };
-    }
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${await getRequestOrigin()}/convite/${parsed.data.token}`,
-        data: {
-          full_name: parsed.data.full_name,
-          phone: parsed.data.phone,
-        },
-      },
-    });
-
-    if (signUpError) {
-      return { status: "error", message: safeActionErrorMessage(signUpError) };
-    }
-
-    const userResponse = await supabase.auth.getUser();
-    user = userResponse.data.user;
-  }
-
-  if (!user) {
-    return {
-      status: "error",
-      message:
-        "Conta criada. Confirme seu e-mail e abra o convite novamente para concluir.",
-    };
-  }
+  if ("state" in inviteUserResult) return inviteUserResult.state;
 
   const { data, error } = await supabase.rpc("accept_doorman_invite", {
     invite_token: parsed.data.token,
@@ -270,7 +297,7 @@ export async function acceptResidentInviteAction(
     full_name: String(formData.get("full_name") ?? ""),
     email: String(formData.get("email") ?? ""),
     phone: String(formData.get("phone") ?? ""),
-    password: String(formData.get("password") ?? "") || undefined,
+    password: String(formData.get("password") ?? ""),
     apartment_id: String(formData.get("apartment_id") ?? ""),
     membership_kind: String(formData.get("membership_kind") ?? "resident"),
     terms: formData.get("terms"),
@@ -310,50 +337,16 @@ export async function acceptResidentInviteAction(
     };
   }
 
-  let {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const inviteUserResult = await ensureInvitePasswordUser(supabase, {
+    email: parsed.data.email,
+    password: parsed.data.password,
+    token: parsed.data.token,
+    fullName: parsed.data.full_name,
+    phone: parsed.data.phone,
+  });
 
-  const connectedEmail = normalizeEmail(user?.email);
-  if (user && connectedEmail !== submittedEmail) {
-    return {
-      status: "error",
-      message: `Este navegador está conectado como ${user.email}. Saia dessa conta para cadastrar ${parsed.data.email}.`,
-    };
-  }
-
-  if (!user) {
-    if (!parsed.data.password) {
-      return { status: "error", message: "Informe uma senha para criar sua conta." };
-    }
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${await getRequestOrigin()}/convite/${parsed.data.token}`,
-        data: {
-          full_name: parsed.data.full_name,
-          phone: parsed.data.phone,
-        },
-      },
-    });
-
-    if (signUpError) {
-      return { status: "error", message: safeActionErrorMessage(signUpError) };
-    }
-
-    const userResponse = await supabase.auth.getUser();
-    user = userResponse.data.user;
-  }
-
-  if (!user) {
-    return {
-      status: "error",
-      message:
-        "Conta criada. Confirme seu e-mail e abra o convite novamente para concluir.",
-    };
-  }
+  if ("state" in inviteUserResult) return inviteUserResult.state;
+  const user = inviteUserResult.user;
 
   const profileEmail = parsed.data.email;
 

@@ -19,6 +19,7 @@ import {
   createGateVisitorAction,
   inviteDoormanAction,
   markPackagePickedUpAction,
+  removeDoormanAction,
   searchGateApartmentAction,
   type GateActionState,
 } from "@/app/(app)/app/[condoId]/guarita/actions";
@@ -77,6 +78,16 @@ type GateBooking = {
   common_areas?: { name: string | null } | null;
 };
 
+type DoormanMember = {
+  id: string;
+  status: string;
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+};
+
 const idle: GateActionState = { status: "idle" };
 
 function StateMessage({ state }: { state: GateActionState }) {
@@ -102,6 +113,8 @@ export function GatePanel({
   recentVisitors,
   announcements,
   canInviteDoorman,
+  canManageDoormen,
+  doormen = [],
   todayBookings = [],
 }: {
   condoId: string;
@@ -111,6 +124,8 @@ export function GatePanel({
   recentVisitors: Visitor[];
   announcements: Announcement[];
   canInviteDoorman: boolean;
+  canManageDoormen: boolean;
+  doormen?: DoormanMember[];
   todayBookings?: GateBooking[];
 }) {
   const [searchState, searchAction, searchPending] = useActionState(
@@ -230,6 +245,46 @@ export function GatePanel({
           </Card>
         ) : null}
       </div>
+
+      {canManageDoormen ? (
+        <Card className="p-5">
+          <div className="flex items-center gap-3">
+            <UserPlus className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Operadores da guarita</h2>
+          </div>
+          <div className="mt-4 space-y-3">
+            {doormen.length ? (
+              doormen.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex flex-col gap-3 rounded-lg border bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {member.profiles?.full_name ?? member.profiles?.email ?? "Operador sem nome"}
+                    </p>
+                    <p className="break-all text-sm text-muted-foreground">
+                      {member.profiles?.email ?? "E-mail não informado"}
+                    </p>
+                    <StatusBadge tone={member.status === "active" ? "success" : "warning"}>
+                      {member.status === "active" ? "Ativo" : "Pendente"}
+                    </StatusBadge>
+                  </div>
+                  <form action={removeDoormanAction}>
+                    <input type="hidden" name="condominium_id" value={condoId} />
+                    <input type="hidden" name="membership_id" value={member.id} />
+                    <Button type="submit" variant="outline" size="sm">
+                      Remover acesso
+                    </Button>
+                  </form>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum operador de guarita cadastrado.</p>
+            )}
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="border-primary/35 bg-primary/5 p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

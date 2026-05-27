@@ -13,7 +13,7 @@ export const acceptResidentInviteSchema = z.object({
   full_name: z.string().min(2, "Informe seu nome completo."),
   email: z.string().email("Informe um e-mail válido."),
   phone: z.string().optional().default(""),
-  password: z.string().min(8, "A senha precisa ter pelo menos 8 caracteres.").optional(),
+  password: z.string().min(8, "A senha precisa ter pelo menos 8 caracteres."),
   apartment_id: z.string().uuid("Selecione um apartamento."),
   membership_kind: z.enum(["resident", "owner", "resident_owner"]),
   terms: z.literal("on", { error: "Você precisa aceitar os termos." }),

@@ -26,6 +26,7 @@ export default async function GatehousePage({
     { data: visitors },
     { data: announcements },
     { data: todayBookings },
+    { data: doormen },
     doormanLimit,
   ] = await Promise.all([
     supabase.from("condominiums").select("id,name").eq("id", condoId).single(),
@@ -73,6 +74,13 @@ export default async function GatehousePage({
       .in("status", ["pending", "approved"])
       .order("start_at", { ascending: true })
       .limit(60),
+    supabase
+      .from("memberships")
+      .select("id,status,profiles!memberships_user_id_fkey(full_name,email,phone)")
+      .eq("condominium_id", condoId)
+      .eq("role", "doorman")
+      .in("status", ["active", "pending"])
+      .order("created_at", { ascending: false }),
     canInviteDoorman(condoId),
   ]);
 
@@ -98,6 +106,8 @@ export default async function GatehousePage({
       recentVisitors={(visitors ?? []) as never}
       announcements={(announcements ?? []) as never}
       canInviteDoorman={canManageRoles === true && doormanLimit.allowed}
+      canManageDoormen={canManageRoles === true}
+      doormen={(doormen ?? []) as never}
       todayBookings={(todayBookings ?? []) as never}
     />
   );
