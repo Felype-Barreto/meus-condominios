@@ -19,4 +19,6 @@ export async function reviewResidentMembershipAction(formData: FormData) {
   }
 
   revalidatePath(`/app/${condoId}/moradores`);
+  revalidatePath(`/app/${condoId}/convites`);
+  revalidatePath(`/app/${condoId}/apartamentos`);
 }
