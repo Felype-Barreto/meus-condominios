@@ -39,7 +39,7 @@ export function ResidentInvitePanel({
       <div>
         <h2 className="text-xl font-semibold">Convite para morador</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Escolha o apartamento. O Meus Condomínios envia o convite por e-mail, quando informado, e também gera um link copiável.
+          Escolha o apartamento. O link expira em 10 minutos, só pode ser usado uma vez e deixa de contar como convite ativo depois disso.
         </p>
       </div>
       <form action={formAction} className="mt-5 grid gap-4">
@@ -93,6 +93,9 @@ export function ResidentInvitePanel({
             <p className="text-sm font-semibold">Link do apartamento criado</p>
           </div>
           <p className="break-all text-sm text-muted-foreground">{state.inviteUrl}</p>
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
+            Este convite expira em 10 minutos. Depois de usado ou expirado, ele não aparece mais e libera espaço para outro convite.
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"

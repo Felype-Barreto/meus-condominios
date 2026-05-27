@@ -57,7 +57,7 @@ export default async function InvitesPage({
         <p className="text-sm font-semibold text-primary">{condo?.name}</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-normal">Convites</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Gere links por apartamento. Se informar e-mail, o convite também fica pronto para envio; se não, copie o link.
+          Gere links por apartamento. Convites de morador expiram em 10 minutos, podem ser usados uma vez e somem desta lista depois de usados ou expirados.
         </p>
       </div>
 
