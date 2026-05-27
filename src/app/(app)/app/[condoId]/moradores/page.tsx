@@ -219,11 +219,11 @@ export default async function PeoplePage({
     )
     .eq("condominium_id", condoId)
     .in("role", ["subscriber_admin", "admin", "syndic", "doorman", "resident", "owner"])
-    .neq("status", "suspended")
+    .in("status", ["active", "pending"])
     .order("created_at", { ascending: false });
 
   if (filters.tipo) query = query.eq("role", filters.tipo);
-  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.status && ["active", "pending"].includes(filters.status)) query = query.eq("status", filters.status);
   if (filters.apartamento) query = query.eq("apartment_id", filters.apartamento);
 
   const { data: memberships } = await query;
@@ -331,7 +331,6 @@ export default async function PeoplePage({
                         ["", "Todos"],
                         ["active", "Ativo"],
                         ["pending", "Pendente"],
-                        ["rejected", "Rejeitado"],
                       ]}
                     />
                   </FilterPanel>
