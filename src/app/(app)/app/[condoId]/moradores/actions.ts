@@ -182,3 +182,72 @@ export async function setApartmentResponsibleAction(formData: FormData) {
   revalidatePath(`/app/${condoId}/apartamentos`);
   revalidatePath(`/app/${condoId}/guarita`);
 }
+
+export async function sendPersonMessageAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id") ?? "");
+  const membershipId = String(formData.get("membership_id") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Entre na sua conta para continuar.");
+  }
+
+  if (!condoId || !membershipId || body.length < 1 || body.length > 1000) {
+    throw new Error("Escreva uma mensagem de até 1000 caracteres.");
+  }
+
+  await supabase.rpc("purge_expired_member_messages");
+
+  const [
+    { data: target },
+    { data: viewerMembership },
+    { data: isSubscriberAdmin },
+    { data: canViewResidents },
+  ] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("id,user_id,status")
+      .eq("id", membershipId)
+      .eq("condominium_id", condoId)
+      .maybeSingle(),
+    supabase
+      .from("memberships")
+      .select("id,role,status")
+      .eq("condominium_id", condoId)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle(),
+    supabase.rpc("is_subscriber_admin", { condo_id: condoId }),
+    supabase.rpc("has_permission", {
+      condo_id: condoId,
+      permission_key: "residents.view",
+    }),
+  ]);
+
+  const canMessage =
+    Boolean(viewerMembership) &&
+    target?.status === "active" &&
+    (target.user_id === user.id || Boolean(isSubscriberAdmin) || Boolean(canViewResidents));
+
+  if (!canMessage) {
+    throw new Error("Você não tem permissão para enviar mensagem para esta pessoa.");
+  }
+
+  const { error } = await supabase.from("member_messages").insert({
+    condominium_id: condoId,
+    sender_id: user.id,
+    target_membership_id: membershipId,
+    body,
+    expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/app/${condoId}/moradores`);
+}

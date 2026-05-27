@@ -36,6 +36,15 @@ export default async function AccountNotificationsPage() {
     .eq("status", "active");
 
   const condoIds = (memberships ?? []).map((membership) => membership.condominium_id);
+
+  if (condoIds.length) {
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("condominium_id", condoIds)
+      .is("read_at", null);
+  }
+
   const { data } = await supabase
     .from("notifications")
     .select("id,title,body,href,type,read_at,created_at,condominiums(name)")
@@ -44,7 +53,7 @@ export default async function AccountNotificationsPage() {
     .limit(80);
 
   const notifications = (data ?? []) as unknown as NotificationRow[];
-  const unread = notifications.filter((item) => !item.read_at).length;
+  const unread = 0;
 
   return (
     <div className="space-y-6">

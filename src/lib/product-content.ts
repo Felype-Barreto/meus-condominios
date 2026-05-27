@@ -6,7 +6,6 @@ import {
   Inbox,
   KeyRound,
   Megaphone,
-  MessageCircle,
   QrCode,
   ShieldCheck,
   UserCheck,
@@ -113,11 +112,10 @@ export const quickActionsByRole = {
 export const onboardingSteps = [
   { key: "apartments", title: "Criar blocos e apartamentos", href: "apartamentos", icon: Home },
   { key: "syndic", title: "Definir síndico", href: "sindico", icon: UserCheck },
-  { key: "residents", title: "Convidar moradores", href: "convites", icon: Users },
+  { key: "residents", title: "Convidar moradores", href: "moradores#convites", icon: Users },
   { key: "commonArea", title: "Criar primeira área comum", href: "areas-comuns", icon: Warehouse },
   { key: "announcement", title: "Enviar primeiro aviso", href: "comunicados", icon: Megaphone },
   { key: "qr", title: "Ativar QR Code", href: "configuracoes/qr-publico", icon: QrCode },
-  { key: "whatsapp", title: "Configurar WhatsApp", href: "configuracoes/whatsapp", icon: MessageCircle },
   { key: "gate", title: "Configurar Guarita/Cancela", href: "guarita", icon: KeyRound },
 ];
 

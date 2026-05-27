@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
-export default async function CommunicationLockedLayout({
+export default async function WhatsAppLockedLayout({
   params,
 }: {
   children: ReactNode;

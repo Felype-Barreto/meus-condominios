@@ -56,6 +56,26 @@ export function NotificationsBell() {
     setUnread(countResult.count ?? 0);
   }, []);
 
+  const markVisibleAsRead = useCallback(async () => {
+    const unreadIds = items.filter((item) => !item.read_at).map((item) => item.id);
+    if (!unreadIds.length) return;
+
+    const supabase = createSupabaseBrowserClient();
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read_at: now })
+      .in("id", unreadIds)
+      .is("read_at", null);
+
+    if (!error) {
+      setItems((current) =>
+        current.map((item) => (unreadIds.includes(item.id) ? { ...item, read_at: now } : item)),
+      );
+      setUnread((current) => Math.max(0, current - unreadIds.length));
+    }
+  }, [items]);
+
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       void refresh();
@@ -68,6 +88,15 @@ export function NotificationsBell() {
       window.removeEventListener("focus", refresh);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timeout = window.setTimeout(() => {
+      void markVisibleAsRead();
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [markVisibleAsRead, open]);
 
   return (
     <div className="relative shrink-0">
@@ -100,7 +129,10 @@ export function NotificationsBell() {
                 <Link
                   key={item.id}
                   href={item.href ?? "/app/notificacoes"}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    void markVisibleAsRead();
+                    setOpen(false);
+                  }}
                   className="block border-b px-4 py-3 text-sm last:border-b-0 hover:bg-muted"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -127,7 +159,13 @@ export function NotificationsBell() {
           </div>
           <div className="border-t p-3">
             <Button asChild variant="outline" className="w-full">
-              <Link href="/app/notificacoes" onClick={() => setOpen(false)}>
+              <Link
+                href="/app/notificacoes"
+                onClick={() => {
+                  void markVisibleAsRead();
+                  setOpen(false);
+                }}
+              >
                 Ver todas
               </Link>
             </Button>

@@ -1,16 +1,19 @@
-import { Check, Search, Star, Trash2, X } from "lucide-react";
+import { Check, Search, Send, Star, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ResidentInvitePanel } from "@/components/app/resident-invite-panel";
 import { RoleBadge } from "@/components/common/role-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getCondominiumAccess } from "@/lib/condominium-access";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   removePersonMembershipAction,
   reviewResidentMembershipAction,
+  sendPersonMessageAction,
   sendPasswordResetForPersonAction,
   setApartmentResponsibleAction,
 } from "./actions";
@@ -51,6 +54,40 @@ type ApartmentOption = {
   blocks?: { id: string | null; name: string | null } | null;
 };
 
+type PendingMembership = {
+  id: string;
+  role: "resident" | "owner";
+  status: string;
+  created_at: string | null;
+  profiles?: {
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
+  apartments?: {
+    number?: string | null;
+    blocks?: { name?: string | null } | null;
+  } | null;
+};
+
+type InviteRow = {
+  token: string;
+  invite_type: string;
+  role: string;
+  email: string | null;
+  status: string;
+  created_at: string | null;
+  expires_at: string | null;
+};
+
+type MemberMessage = {
+  id: string;
+  sender_id: string;
+  target_membership_id: string;
+  body: string;
+  created_at: string;
+  expires_at: string;
+};
+
 const roleOptions = [
   ["", "Todos"],
   ["resident", "Morador"],
@@ -63,6 +100,17 @@ const roleOptions = [
 
 function roleLabel(role: string) {
   return roleOptions.find(([value]) => value === role)?.[1] ?? role;
+}
+
+function inviteLabel(type: string) {
+  const labels: Record<string, string> = {
+    resident: "Morador",
+    owner: "Proprietario",
+    syndic: "Sindico",
+    doorman: "Guarita",
+    admin: "Administracao",
+  };
+  return labels[type] ?? type;
 }
 
 function isResponsible(row: PersonRow) {
@@ -188,8 +236,10 @@ export default async function PeoplePage({
     { data: canApproveResidents },
     { data: canViewPhone },
     { data: apartments },
+    { data: pendingMemberships },
+    { data: activeInvites },
   ] = await Promise.all([
-    supabase.from("condominiums").select("name").eq("id", condoId).single(),
+    supabase.from("condominiums").select("name,slug").eq("id", condoId).single(),
     supabase.rpc("is_subscriber_admin", { condo_id: condoId }),
     supabase.rpc("has_permission", {
       condo_id: condoId,
@@ -208,6 +258,31 @@ export default async function PeoplePage({
       .select("id,number,blocks(id,name)")
       .eq("condominium_id", condoId)
       .order("number", { ascending: true }),
+    supabase
+      .from("memberships")
+      .select(
+        `
+        id,
+        role,
+        status,
+        created_at,
+        profiles!memberships_user_id_fkey(full_name,email),
+        apartments(number,blocks(name))
+      `,
+      )
+      .eq("condominium_id", condoId)
+      .in("role", ["resident", "owner"])
+      .eq("status", "pending")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("invites")
+      .select("token,invite_type,role,email,status,created_at,expires_at")
+      .eq("condominium_id", condoId)
+      .eq("status", "active")
+      .is("used_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
 
   const canOpenPeople = Boolean(user && (isSubscriberAdmin || canViewResidents || canApproveResidents));
@@ -249,6 +324,29 @@ export default async function PeoplePage({
   const { data: memberships } = await query;
   let rows = (memberships ?? []) as unknown as PersonRow[];
 
+  await supabase.rpc("purge_expired_member_messages");
+
+  const rowIds = rows.map((row) => row.id);
+  const { data: memberMessages } = rowIds.length
+    ? await supabase
+        .from("member_messages")
+        .select("id,sender_id,target_membership_id,body,created_at,expires_at")
+        .eq("condominium_id", condoId)
+        .in("target_membership_id", rowIds)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(120)
+    : { data: [] };
+
+  const messagesByMembership = ((memberMessages ?? []) as MemberMessage[]).reduce<Record<string, MemberMessage[]>>(
+    (acc, message) => {
+      acc[message.target_membership_id] ??= [];
+      acc[message.target_membership_id].push(message);
+      return acc;
+    },
+    {},
+  );
+
   if (filters.bloco) {
     rows = rows.filter((row) => row.apartments?.blocks?.id === filters.bloco);
   }
@@ -288,6 +386,9 @@ export default async function PeoplePage({
     ? apartmentRows.filter((apartment) => apartment.blocks?.id === filters.bloco)
     : apartmentRows;
   const phoneVisible = Boolean(isSubscriberAdmin || canViewPhone);
+  const pendingRows = (pendingMemberships ?? []) as unknown as PendingMembership[];
+  const invites = (activeInvites ?? []) as unknown as InviteRow[];
+  const appUrl = getPublicAppUrl();
 
   return (
     <div className="space-y-6">
@@ -301,7 +402,7 @@ export default async function PeoplePage({
           </p>
         </div>
         <Button asChild>
-          <Link href={`/app/${condoId}/convites`}>Convidar pessoa</Link>
+          <Link href="#convites">Convidar pessoa</Link>
         </Button>
       </div>
 
@@ -364,6 +465,7 @@ export default async function PeoplePage({
                   const canSetResponsible = row.apartments?.id && ["resident", "owner"].includes(row.role);
                   const modalId = `person-${row.id}`;
                   const housemates = sameApartmentPeople(row, rows);
+                  const messages = messagesByMembership[row.id] ?? [];
                   return (
                     <tr key={row.id} className="h-11 border-b transition hover:bg-muted/45">
                       <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{index + 1}</td>
@@ -439,13 +541,33 @@ export default async function PeoplePage({
                                 <div>
                                   <p className="text-sm font-semibold">Chat interno</p>
                                   <p className="mt-1 text-xs text-muted-foreground">
-                                    Mensagens simples de texto, com retencao de ate 3 dias para reduzir custo e exposicao de dados.
+                                    Mensagens simples de texto. Elas somem automaticamente em ate 3 dias para reduzir custo e exposicao de dados.
                                   </p>
                                 </div>
-                                <Button type="button" size="sm" disabled variant="outline">
-                                  Em breve
-                                </Button>
                               </div>
+                              <div className="mt-3 max-h-44 space-y-2 overflow-y-auto rounded-lg border bg-card p-3">
+                                {messages.length ? (
+                                  messages.slice(0, 8).map((message) => (
+                                    <div key={message.id} className="rounded-md bg-background p-2 text-sm">
+                                      <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                                      <p className="mt-1 text-[11px] text-muted-foreground">
+                                        {message.sender_id === user?.id ? "Voce" : "Equipe"} - {formatDate(message.created_at)}
+                                      </p>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">Nenhuma mensagem ativa para esta pessoa.</p>
+                                )}
+                              </div>
+                              <form action={sendPersonMessageAction} className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                <input type="hidden" name="condominium_id" value={condoId} />
+                                <input type="hidden" name="membership_id" value={row.id} />
+                                <Input name="body" maxLength={1000} placeholder="Escreva uma mensagem curta" className="sm:flex-1" />
+                                <Button type="submit" size="sm">
+                                  <Send className="h-4 w-4" />
+                                  Enviar
+                                </Button>
+                              </form>
                             </div>
 
                             <div className="mt-5 flex flex-wrap gap-2">
@@ -530,6 +652,116 @@ export default async function PeoplePage({
           </table>
         </div>
       </Card>
+
+      <section id="convites" className="space-y-4">
+        <ResidentInvitePanel
+          condoId={condoId}
+          apartments={(apartmentRows ?? []) as never}
+          selectedApartmentId={filters.apartamento ?? ""}
+        />
+
+        <Card className="p-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Cadastros pendentes</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Aprove ou rejeite os cadastros enviados por link. Rejeitados saem desta fila e ficam apenas no historico.
+              </p>
+            </div>
+            <StatusBadge tone={pendingRows.length ? "warning" : "success"}>
+              {pendingRows.length} pendente(s)
+            </StatusBadge>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {pendingRows.length ? (
+              pendingRows.map((membership) => (
+                <div
+                  key={membership.id}
+                  className="flex flex-col gap-4 rounded-lg border bg-muted p-4 transition hover:border-primary/60 hover:shadow-sm md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap gap-2">
+                      <StatusBadge tone="warning">Pendente</StatusBadge>
+                      <StatusBadge tone="neutral">{inviteLabel(membership.role)}</StatusBadge>
+                    </div>
+                    <p className="mt-3 font-semibold">
+                      {membership.profiles?.full_name ?? membership.profiles?.email ?? "Cadastro sem nome"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {membership.apartments?.blocks?.name ?? "Bloco nao informado"} -{" "}
+                      {membership.apartments?.number ?? "Apartamento nao informado"}
+                    </p>
+                    <p className="mt-1 break-all text-xs text-muted-foreground">
+                      {membership.profiles?.email ?? "E-mail nao informado"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <form action={reviewResidentMembershipAction}>
+                      <input type="hidden" name="condominium_id" value={condoId} />
+                      <input type="hidden" name="membership_id" value={membership.id} />
+                      <input type="hidden" name="decision" value="approve" />
+                      <Button type="submit" size="sm">
+                        Aprovar
+                      </Button>
+                    </form>
+                    <form action={reviewResidentMembershipAction}>
+                      <input type="hidden" name="condominium_id" value={condoId} />
+                      <input type="hidden" name="membership_id" value={membership.id} />
+                      <input type="hidden" name="decision" value="reject" />
+                      <Button type="submit" size="sm" variant="outline">
+                        Rejeitar
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum cadastro pendente agora.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <p className="text-sm font-semibold">Codigo do condominio para login</p>
+          <p className="mt-2 break-all text-2xl font-semibold">{condo?.slug ?? "codigo-indisponivel"}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Moradores, sindico e guarita usam este codigo na opcao Condominio da tela Entrar,
+            junto com o e-mail e a senha criados pelo convite.
+          </p>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold">Convites ativos</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Os links expiram em 10 minutos e saem daqui depois de usados ou vencidos.
+          </p>
+          <div className="mt-5 space-y-3">
+            {invites.length ? (
+              invites.map((invite) => (
+                <div
+                  key={invite.token}
+                  className="flex flex-col gap-2 rounded-lg border bg-muted p-4 md:flex-row md:items-center md:justify-between"
+                >
+                  <div>
+                    <p className="font-semibold">{invite.email ?? "Link copiavel"}</p>
+                    <p className="break-all text-sm text-muted-foreground">
+                      {appUrl}/convite/{invite.token}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {inviteLabel(invite.invite_type)} / {inviteLabel(invite.role)}
+                    </p>
+                  </div>
+                  <StatusBadge tone="success">Ativo</StatusBadge>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum convite ativo no momento.</p>
+            )}
+          </div>
+        </Card>
+      </section>
     </div>
   );
 }

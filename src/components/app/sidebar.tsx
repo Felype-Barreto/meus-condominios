@@ -25,16 +25,13 @@ const permissionByItem: Record<string, string> = {
   moradores: "residents.view",
   sindico: "settings.view",
   guarita: "gate.view_panel",
-  convites: "residents.invite",
   comunicados: "announcements.view",
-  comunicacao: "announcements.create",
   agendamentos: "bookings.view_all",
   "areas-comuns": "bookings.create",
   solicitacoes: "tickets.view_all",
   encomendas: "packages.view_all",
   ocorrencias: "incidents.create",
   permissoes: "settings.roles",
-  whatsapp: "announcements.create",
   historico: "gate.view_panel",
 };
 
