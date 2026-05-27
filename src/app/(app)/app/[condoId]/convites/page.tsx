@@ -107,8 +107,8 @@ export default async function InvitesPage({
           <div>
             <h2 className="text-xl font-semibold">Cadastros pendentes</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Cada apartamento pode ter até 2 responsáveis ativos ou pendentes. Aprove ou rejeite
-              cadastros antigos para liberar novos convites.
+              Revise cadastros enviados por link. O responsável do apartamento é definido na tela
+              Pessoas e serve apenas como contato principal para portaria e QR.
             </p>
           </div>
           <StatusBadge tone={pendingRows.length ? "warning" : "success"}>

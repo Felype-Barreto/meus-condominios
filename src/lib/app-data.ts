@@ -35,7 +35,7 @@ export const sidebarItems = [
   { href: "dashboard", label: "Painel geral", icon: LayoutDashboard },
   { href: "historico", label: "Histórico", icon: History },
   { href: "apartamentos", label: "Apartamentos", icon: Building2 },
-  { href: "moradores", label: "Moradores", icon: Users },
+  { href: "moradores", label: "Pessoas", icon: Users },
   { href: "sindico", label: "Síndico", icon: UserRoundCheck },
   { href: "guarita", label: "Guarita", icon: KeyRound },
   { href: "convites", label: "Convites", icon: Inbox },

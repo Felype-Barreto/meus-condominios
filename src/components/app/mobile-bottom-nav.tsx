@@ -42,14 +42,14 @@ const roleGroups: Record<MobileRole, Array<{ href: string; label: string; icon: 
   admin: [
     { href: "dashboard", label: "Painel", icon: Home },
     { href: "apartamentos", label: "Aptos", icon: Building2 },
-    { href: "moradores", label: "Moradores", icon: UsersRound },
+    { href: "moradores", label: "Pessoas", icon: UsersRound },
     { href: "comunicados", label: "Avisos", icon: Megaphone },
     { href: "configuracoes", label: "Mais", icon: MoreHorizontal },
   ],
   syndic: [
     { href: "dashboard", label: "Painel", icon: Home },
     { href: "apartamentos", label: "Aptos", icon: Building2 },
-    { href: "moradores", label: "Moradores", icon: UsersRound },
+    { href: "moradores", label: "Pessoas", icon: UsersRound },
     { href: "comunicados", label: "Avisos", icon: Megaphone },
     { href: "configuracoes", label: "Mais", icon: MoreHorizontal },
   ],
