@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function reviewResidentMembershipAction(formData: FormData) {
@@ -98,6 +99,70 @@ export async function removePersonMembershipAction(formData: FormData) {
 }
 
 export const removeResidentMembershipAction = removePersonMembershipAction;
+
+export async function sendPasswordResetForPersonAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id") ?? "");
+  const membershipId = String(formData.get("membership_id") ?? "");
+  const supabase = await createSupabaseServerClient();
+
+  const [{ data: isSubscriberAdmin }, { data: canManageResidents }, { data: canManageRoles }, { data: membership }] =
+    await Promise.all([
+      supabase.rpc("is_subscriber_admin", { condo_id: condoId }),
+      supabase.rpc("has_permission", {
+        condo_id: condoId,
+        permission_key: "residents.approve",
+      }),
+      supabase.rpc("has_permission", {
+        condo_id: condoId,
+        permission_key: "settings.roles",
+      }),
+      supabase
+        .from("memberships")
+        .select("id,role,profiles!memberships_user_id_fkey(email)")
+        .eq("id", membershipId)
+        .eq("condominium_id", condoId)
+        .maybeSingle(),
+    ]);
+
+  if (!membership || membership.role === "subscriber_admin") {
+    throw new Error("Cadastro inválido para redefinição de senha.");
+  }
+
+  const isResidentRole = ["resident", "owner"].includes(membership.role);
+  const isStaffRole = ["admin", "syndic", "doorman"].includes(membership.role);
+  const canReset =
+    Boolean(isSubscriberAdmin) ||
+    (isResidentRole && Boolean(canManageResidents)) ||
+    (isStaffRole && Boolean(canManageRoles));
+
+  if (!canReset) {
+    throw new Error("Você não tem permissão para ajudar esta pessoa com senha.");
+  }
+
+  const profile = Array.isArray(membership.profiles) ? membership.profiles[0] : membership.profiles;
+  const email = profile?.email?.trim();
+  if (!email) {
+    throw new Error("Esta pessoa não tem e-mail cadastrado.");
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${getPublicAppUrl()}/auth/callback?next=/redefinir-senha`,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await supabase.from("audit_logs").insert({
+    condominium_id: condoId,
+    action: "send_password_reset",
+    entity_type: "memberships",
+    entity_id: membershipId,
+    metadata: { role: membership.role },
+  });
+
+  revalidatePath(`/app/${condoId}/moradores`);
+}
 
 export async function setApartmentResponsibleAction(formData: FormData) {
   const condoId = String(formData.get("condominium_id") ?? "");

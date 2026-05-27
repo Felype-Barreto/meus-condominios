@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   removePersonMembershipAction,
   reviewResidentMembershipAction,
+  sendPasswordResetForPersonAction,
   setApartmentResponsibleAction,
 } from "./actions";
 
@@ -404,6 +405,20 @@ export default async function PeoplePage({
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
+                          {row.role !== "subscriber_admin" && row.profiles?.email ? (
+                            <form action={sendPasswordResetForPersonAction}>
+                              <input type="hidden" name="condominium_id" value={condoId} />
+                              <input type="hidden" name="membership_id" value={row.id} />
+                              <Button
+                                type="submit"
+                                size="sm"
+                                variant="outline"
+                                title="Enviar link de redefinição de senha"
+                              >
+                                Redefinir senha
+                              </Button>
+                            </form>
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-4 py-3">

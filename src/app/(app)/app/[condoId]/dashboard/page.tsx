@@ -11,6 +11,7 @@ import {
 } from "@/components/app/product-panels";
 import { AdSenseSlot } from "@/components/ads/AdSenseSlot";
 import { QRCodeCard } from "@/components/app/qr-code-card";
+import { CondominiumCodeCard } from "@/components/common/condominium-code-card";
 import { RoleBadge } from "@/components/common/role-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
@@ -88,7 +89,7 @@ export default async function DashboardPage({
       .maybeSingle(),
     supabase
       .from("condominiums")
-      .select("name, public_code, plan")
+      .select("name, slug, public_code, plan")
       .eq("id", condoId)
       .single(),
     auth.user
@@ -171,7 +172,7 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr] lg:items-start">
         <div>
           <p className="text-sm font-semibold text-primary">
             {condo?.name ?? "Condomínio"}
@@ -182,9 +183,12 @@ export default async function DashboardPage({
             reservas, encomendas e pendências do dia.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <RoleBadge role={role as never} />
-          <StatusBadge tone="success">Dados protegidos</StatusBadge>
+        <div className="space-y-3">
+          <CondominiumCodeCard code={condo?.slug} />
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <RoleBadge role={role as never} />
+            <StatusBadge tone="success">Dados protegidos</StatusBadge>
+          </div>
         </div>
       </div>
 

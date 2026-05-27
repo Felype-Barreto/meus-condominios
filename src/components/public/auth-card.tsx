@@ -4,7 +4,7 @@ import { Building2, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CaptchaBox } from "@/components/public/captcha-box";
 import { GoogleAuthButton } from "@/components/public/google-auth-button";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,11 @@ export function AuthCard({
   const [error, setError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
   const [accountMode, setAccountMode] = useState<"admin" | "condominium">("admin");
+  const [savedCondominiumCode, setSavedCondominiumCode] = useState("");
+
+  useEffect(() => {
+    setSavedCondominiumCode(window.localStorage.getItem("meuscondominios:last-condominium-code") ?? "");
+  }, []);
 
   const handleCaptchaToken = useCallback((token: string) => {
     setCaptchaToken(token);
@@ -194,6 +199,7 @@ export function AuthCard({
           return;
         }
 
+        window.localStorage.setItem("meuscondominios:last-condominium-code", condominiumCode);
         router.replace(`/app/${access.condominium_id}/dashboard`);
         router.refresh();
         return;
@@ -304,10 +310,17 @@ export function AuthCard({
                 id="condominium_code"
                 name="condominium_code"
                 placeholder="ex: residencial-cumbaru"
+                defaultValue={savedCondominiumCode}
                 autoCapitalize="none"
                 autoComplete="organization"
                 required
               />
+              <p className="text-xs leading-5 text-muted-foreground">
+                Se você já entrou neste aparelho, o último código usado fica salvo aqui.
+              </p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Esqueceu o código? Peça ao administrador do condomínio.
+              </p>
             </div>
           ) : null}
           <div className="space-y-2">

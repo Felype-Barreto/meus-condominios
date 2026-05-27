@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type InvitePublic = {
   condominium_name?: string;
+  condominium_code?: string | null;
   invite_type?: string;
   email?: string | null;
   status?: string;
@@ -33,8 +34,7 @@ export default async function InvitePage({
           <AlertTriangle className="h-8 w-8 text-destructive" />
           <h1 className="mt-5 text-2xl font-semibold">Convite não encontrado</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Verifique se o link foi copiado corretamente ou peça um novo convite
-            ao administrador.
+            Verifique se o link foi copiado corretamente ou peça um novo convite ao administrador.
           </p>
         </Card>
       </section>
@@ -63,6 +63,7 @@ export default async function InvitePage({
 
   const invitedEmail = invite.email?.trim() || undefined;
   const condominiumName = invite.condominium_name ?? "este condomínio";
+  const condominiumCode = invite.condominium_code?.trim() || undefined;
 
   if (invite.invite_type === "doorman") {
     return (
@@ -70,6 +71,7 @@ export default async function InvitePage({
         <DoormanInviteForm
           token={token}
           condominiumName={condominiumName}
+          condominiumCode={condominiumCode}
           invitedEmail={invitedEmail}
         />
       </section>
@@ -86,6 +88,7 @@ export default async function InvitePage({
         <ResidentInviteForm
           token={token}
           condominiumName={condominiumName}
+          condominiumCode={condominiumCode}
           invitedEmail={invitedEmail}
           inviteType={invite.invite_type === "owner" ? "owner" : "resident"}
           apartments={(apartments ?? []) as never}
@@ -113,6 +116,7 @@ export default async function InvitePage({
       <SyndicInviteForm
         token={token}
         condominiumName={condominiumName}
+        condominiumCode={condominiumCode}
         invitedEmail={invitedEmail}
       />
     </section>

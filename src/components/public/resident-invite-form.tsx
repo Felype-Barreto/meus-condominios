@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CondominiumCodeCard } from "@/components/common/condominium-code-card";
 
 type ApartmentOption = {
   apartment_id: string;
@@ -28,12 +29,14 @@ function FieldError({ errors }: { errors?: string[] }) {
 export function ResidentInviteForm({
   token,
   condominiumName,
+  condominiumCode,
   invitedEmail,
   inviteType,
   apartments,
 }: {
   token: string;
   condominiumName: string;
+  condominiumCode?: string;
   invitedEmail?: string;
   inviteType: "resident" | "owner";
   apartments: ApartmentOption[];
@@ -52,6 +55,12 @@ export function ResidentInviteForm({
         <p className="mt-2 text-sm text-muted-foreground">
           Aguarde aprovação da administração do condomínio.
         </p>
+        <CondominiumCodeCard
+          code={condominiumCode}
+          compact
+          className="mt-5 text-left"
+          helper="Salve este código para fazer login na opção Condomínio depois que seu cadastro for aprovado."
+        />
       </Card>
     );
   }
@@ -72,6 +81,12 @@ export function ResidentInviteForm({
           e não depende da conta administradora que possa estar salva no navegador.
         </p>
       </div>
+      <CondominiumCodeCard
+        code={condominiumCode}
+        compact
+        className="mt-5"
+        helper="Salve este código para realizar login no condomínio depois. Se perder, peça o código ao administrador."
+      />
 
       {state.status === "error" ? (
         <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-destructive">
