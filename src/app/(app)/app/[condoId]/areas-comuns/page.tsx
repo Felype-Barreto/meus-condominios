@@ -3,6 +3,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEconomyPageSize } from "@/lib/economy-mode";
 import { CalendarDays, Warehouse } from "lucide-react";
@@ -11,10 +12,13 @@ import Link from "next/link";
 export default async function CommonAreasPage({ params }: { params: Promise<{ condoId: string }> }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  const canManage = access.isAdmin || access.isSyndic;
   const { data: areas, error } = await supabase
     .from("common_areas")
-    .select("id,name,description,capacity,requires_approval,active,created_at")
+    .select("id,name,description,rules,capacity,requires_approval,active,created_at")
     .eq("condominium_id", condoId)
+    .eq(access.isResident ? "active" : "condominium_id", access.isResident ? true : condoId)
     .order("created_at", { ascending: false })
     .limit(getEconomyPageSize(120));
 
@@ -26,7 +30,7 @@ export default async function CommonAreasPage({ params }: { params: Promise<{ co
         <p className="text-sm font-semibold text-primary">Estrutura</p>
         <h1 className="mt-2 text-3xl font-semibold">Áreas comuns</h1>
       </div>
-      <CommonAreaForm condoId={condoId} />
+      {canManage ? <CommonAreaForm condoId={condoId} /> : null}
       {areas?.length ? (
         <div className="grid gap-4 md:grid-cols-2">
           {areas.map((area) => (
@@ -40,6 +44,11 @@ export default async function CommonAreasPage({ params }: { params: Promise<{ co
               </div>
               <p className="mt-4 text-sm text-muted-foreground">Capacidade: {area.capacity ?? "não informada"}</p>
               <p className="text-sm text-muted-foreground">Aprovação: {area.requires_approval ? "sim" : "não"}</p>
+              {"rules" in area && area.rules ? (
+                <p className="mt-3 rounded-lg border bg-background p-3 text-sm text-muted-foreground">
+                  {area.rules}
+                </p>
+              ) : null}
               <Button asChild variant="outline" className="mt-4 w-full sm:w-auto">
                 <Link href={`/app/${condoId}/areas-comuns/${area.id}/agenda`}>
                   <CalendarDays className="h-4 w-4" />

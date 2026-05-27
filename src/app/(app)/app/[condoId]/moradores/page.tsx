@@ -1,10 +1,12 @@
 import { Check, Search, Star, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { RoleBadge } from "@/components/common/role-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   removePersonMembershipAction,
@@ -157,6 +159,8 @@ export default async function PeoplePage({
   const { condoId } = await params;
   const filters = (await searchParams) ?? {};
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
   const {
     data: { user },
   } = await supabase.auth.getUser();

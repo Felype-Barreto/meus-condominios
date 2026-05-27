@@ -72,6 +72,66 @@ function parseTargetIds(value?: string) {
   }
 }
 
+async function getActiveMembershipRole(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  condoId: string,
+  userId: string,
+) {
+  const { data } = await supabase
+    .from("memberships")
+    .select("role,apartment_id")
+    .eq("condominium_id", condoId)
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  const priority: Record<string, number> = {
+    subscriber_admin: 0,
+    admin: 1,
+    syndic: 2,
+    doorman: 3,
+    owner: 4,
+    resident: 5,
+  };
+
+  return ((data ?? []) as { role?: string | null; apartment_id?: string | null }[]).sort(
+    (a, b) => (priority[a.role ?? ""] ?? 99) - (priority[b.role ?? ""] ?? 99),
+  )[0] ?? null;
+}
+
+async function assertPermission(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  condoId: string,
+  userId: string,
+  permission: string,
+) {
+  const membership = await getActiveMembershipRole(supabase, condoId, userId);
+  if (!membership) throw new Error("Sem acesso ativo a este condomínio.");
+  if (membership.role === "subscriber_admin") return membership;
+
+  const { data: allowed } = await supabase.rpc("has_permission", {
+    condo_id: condoId,
+    permission_key: permission,
+  });
+
+  if (!allowed) throw new Error("Sem permissão para concluir esta ação.");
+  return membership;
+}
+
+async function assertResidentApartmentScope(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  condoId: string,
+  userId: string,
+  apartmentId?: string | null,
+) {
+  const membership = await getActiveMembershipRole(supabase, condoId, userId);
+  if (!membership) throw new Error("Sem acesso ativo a este condomínio.");
+  if (membership.role === "resident" || membership.role === "owner") {
+    if (!membership.apartment_id || membership.apartment_id !== apartmentId) {
+      throw new Error("Morador só pode usar o próprio apartamento.");
+    }
+  }
+}
+
 export async function updateApartmentAction(
   _state: ModuleActionState,
   formData: FormData,
@@ -110,6 +170,10 @@ export async function createAnnouncementAction(
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
     const { supabase, userId } = await currentUserId();
+    const membership = await assertPermission(supabase, parsed.data.condominium_id, userId, "announcements.create");
+    if (membership.role === "resident" || membership.role === "owner") {
+      throw new Error("Morador não pode publicar avisos.");
+    }
     await assertCostAllowed(parsed.data.condominium_id, userId, "announcements.create");
     const targetIds =
       parsed.data.target_type === "all"
@@ -168,6 +232,10 @@ export async function createCommonAreaAction(
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
     const { supabase, userId } = await currentUserId();
+    const membership = await assertPermission(supabase, parsed.data.condominium_id, userId, "common_areas.create");
+    if (membership.role === "resident" || membership.role === "owner" || membership.role === "doorman") {
+      throw new Error("Sem permissão para criar área comum.");
+    }
     await assertCostAllowed(parsed.data.condominium_id, userId, "common_areas.create");
     const { data, error } = await supabase.from("common_areas").insert(parsed.data).select("id").single();
     if (error) throw error;
@@ -187,7 +255,9 @@ export async function createBookingAction(
   const parsed = bookingSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
-    const { userId } = await currentUserId();
+    const { supabase, userId } = await currentUserId();
+    await assertPermission(supabase, parsed.data.condominium_id, userId, "bookings.create");
+    await assertResidentApartmentScope(supabase, parsed.data.condominium_id, userId, parsed.data.apartment_id);
     await assertCostAllowed(parsed.data.condominium_id, userId, "bookings.create");
     const data = await createBooking({
       condominiumId: parsed.data.condominium_id,
@@ -278,6 +348,8 @@ export async function createTicketAction(
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
     const { supabase, userId } = await currentUserId();
+    await assertPermission(supabase, parsed.data.condominium_id, userId, "tickets.create");
+    await assertResidentApartmentScope(supabase, parsed.data.condominium_id, userId, parsed.data.apartment_id);
     await assertCostAllowed(parsed.data.condominium_id, userId, "tickets.create");
     const attachments = parsed.data.attachments ? parsed.data.attachments.split(",").map((url) => url.trim()).filter(Boolean) : [];
     const { data, error } = await supabase
@@ -312,6 +384,10 @@ export async function createPackageAction(
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
     const { supabase, userId } = await currentUserId();
+    const membership = await assertPermission(supabase, parsed.data.condominium_id, userId, "packages.create");
+    if (membership.role === "resident" || membership.role === "owner") {
+      throw new Error("Morador não pode registrar encomenda.");
+    }
     await assertCostAllowed(parsed.data.condominium_id, userId, "packages.create");
     const { data, error } = await supabase.from("packages").insert({
       condominium_id: parsed.data.condominium_id,

@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { markAnnouncementReadAction } from "@/lib/actions/core-modules";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEconomyPageSize } from "@/lib/economy-mode";
 import { Megaphone } from "lucide-react";
@@ -11,9 +12,11 @@ import { Megaphone } from "lucide-react";
 export default async function AnnouncementsPage({ params }: { params: Promise<{ condoId: string }> }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
-  const [{ data: announcements }, { data: canViewReads }, { data: apartments }] = await Promise.all([
+  const access = await getCondominiumAccess(condoId);
+  const [{ data: announcements }, { data: canViewReads }, { data: canCreate }, { data: apartments }] = await Promise.all([
     supabase.from("announcements").select("id,title,body,target_type,urgent,pinned,created_at,announcement_reads(user_id,read_at)").eq("condominium_id", condoId).order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(getEconomyPageSize(60)),
     supabase.rpc("has_permission", { condo_id: condoId, permission_key: "announcements.view_reads" }),
+    supabase.rpc("has_permission", { condo_id: condoId, permission_key: "announcements.create" }),
     supabase.from("apartments").select("id,number,blocks(name)").eq("condominium_id", condoId).order("number").limit(getEconomyPageSize(300)),
   ]);
 
@@ -23,7 +26,9 @@ export default async function AnnouncementsPage({ params }: { params: Promise<{ 
         <p className="text-sm font-semibold text-primary">Comunicação</p>
         <h1 className="mt-2 text-3xl font-semibold">Avisos</h1>
       </div>
-      <AnnouncementForm condoId={condoId} apartments={(apartments ?? []) as never} />
+      {!access.isResident && (access.isAdmin || access.isSyndic || canCreate) ? (
+        <AnnouncementForm condoId={condoId} apartments={(apartments ?? []) as never} />
+      ) : null}
       {announcements?.length ? (
         <div className="space-y-4">
           {announcements.map((item) => (

@@ -3,8 +3,10 @@ import { ResidentInvitePanel } from "@/components/app/resident-invite-panel";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { reviewResidentMembershipAction } from "../moradores/actions";
 
 type PendingMembership = {
@@ -43,6 +45,8 @@ export default async function InvitesPage({
   const { condoId } = await params;
   const selectedApartmentId = (await searchParams)?.apartamento ?? "";
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
   const [{ data: condo }, { data: apartments }, { data: invites }, { data: pendingMemberships }] =
     await Promise.all([
       supabase

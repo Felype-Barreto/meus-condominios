@@ -66,13 +66,14 @@ function normalizeRole(role?: string | null): MobileRole {
   if (role === "resident" || role === "owner" || role === "doorman" || role === "syndic") {
     return role;
   }
-  return "admin";
+  if (role === "admin" || role === "subscriber_admin") return "admin";
+  return "resident";
 }
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const condoId = pathname.match(/^\/app\/([^/]+)/)?.[1];
-  const [role, setRole] = useState<MobileRole>("admin");
+  const [role, setRole] = useState<MobileRole>("resident");
 
   useEffect(() => {
     if (!condoId || !uuidPattern.test(condoId)) return;

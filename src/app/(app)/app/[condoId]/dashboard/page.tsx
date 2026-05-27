@@ -16,6 +16,7 @@ import { RoleBadge } from "@/components/common/role-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { getCurrentUsage } from "@/lib/plans";
 import { getPublicAppUrl } from "@/lib/public-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -58,7 +59,7 @@ export default async function DashboardPage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const access = await getCondominiumAccess(condoId);
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -66,7 +67,6 @@ export default async function DashboardPage({
   const [
     { data: syndic },
     { data: condo },
-    { data: membership },
     { data: upcomingBookings },
     { data: notifications },
     { data: activity },
@@ -92,16 +92,6 @@ export default async function DashboardPage({
       .select("name, slug, public_code, plan")
       .eq("id", condoId)
       .single(),
-    auth.user
-      ? supabase
-          .from("memberships")
-          .select("role")
-          .eq("condominium_id", condoId)
-          .eq("user_id", auth.user.id)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
     supabase
       .from("bookings")
       .select("id,title,start_at,status,common_areas(name)")
@@ -158,7 +148,8 @@ export default async function DashboardPage({
 
   const appUrl = getPublicAppUrl();
   const upcoming = (upcomingBookings ?? []) as unknown as UpcomingBooking[];
-  const role = membership?.role ?? "subscriber_admin";
+  const role = access.role;
+  const canManage = access.isAdmin || access.isSyndic;
   const onboardingCompleted = {
     apartments: usage.apartments > 0,
     syndic: Boolean(syndic),
@@ -169,6 +160,80 @@ export default async function DashboardPage({
     whatsapp: !whatsUsage.manual_only || whatsUsage.limit > 0,
     gate: usage.doormen > 0,
   };
+
+  if (access.isResident) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr] lg:items-start">
+          <div>
+            <p className="text-sm font-semibold text-primary">
+              {condo?.name ?? "Condomínio"}
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-normal">Painel do morador</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Acompanhe avisos, reservas, solicitações e encomendas do seu apartamento.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <CondominiumCodeCard code={condo?.slug} />
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              <RoleBadge role={role as never} />
+              <StatusBadge tone="success">Acesso de morador</StatusBadge>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <DashboardCard title="Avisos" value={String(unreadAnnouncements)} detail="Comunicados para leitura" icon={MessageCircle} />
+          <DashboardCard title="Próximas reservas" value={String(upcoming.length)} detail="Agenda do condomínio" icon={CalendarDays} />
+          <DashboardCard title="Solicitações" value="Abrir" detail="Reclamações e sugestões" icon={Users} />
+          <DashboardCard title="Encomendas" value="Ver" detail="Itens registrados para sua unidade" icon={Building2} />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Agenda próxima</h2>
+            <div className="mt-5 space-y-3">
+              {upcoming.length ? (
+                upcoming.map((booking) => (
+                  <Link
+                    key={booking.id}
+                    href={`/app/${condoId}/agendamentos`}
+                    className="block rounded-lg border bg-background p-4 text-sm hover:bg-muted"
+                  >
+                    <p className="font-semibold">{booking.title}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {booking.common_areas?.name} · {new Date(booking.start_at).toLocaleString("pt-BR")}
+                    </p>
+                  </Link>
+                ))
+              ) : (
+                <p className="rounded-lg border bg-background p-4 text-sm text-muted-foreground">
+                  Nenhuma reserva futura.
+                </p>
+              )}
+            </div>
+          </Card>
+          <NotificationCenter
+            condoId={condoId}
+            notifications={(notifications ?? []) as NotificationRow[]}
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Button asChild variant="outline">
+            <Link href={`/app/${condoId}/comunicados`}>Ler avisos</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/app/${condoId}/agendamentos`}>Solicitar agendamento</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/app/${condoId}/solicitacoes`}>Enviar solicitação</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -192,7 +257,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {!syndic ? (
+      {canManage && !syndic ? (
         <Card className="border-amber-200 bg-amber-50 p-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -210,7 +275,7 @@ export default async function DashboardPage({
         </Card>
       ) : null}
 
-      <OnboardingChecklist condoId={condoId} completed={onboardingCompleted} />
+      {canManage ? <OnboardingChecklist condoId={condoId} completed={onboardingCompleted} /> : null}
       <InstallMobileCard />
       <QuickActions condoId={condoId} role={role} />
 

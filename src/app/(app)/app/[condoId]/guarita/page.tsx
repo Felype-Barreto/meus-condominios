@@ -1,8 +1,10 @@
 ﻿import { LockKeyhole } from "lucide-react";
 import { GatePanel } from "@/components/app/gate-panel";
 import { Card } from "@/components/ui/card";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { canInviteDoorman } from "@/lib/plans";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function GatehousePage({
   params,
@@ -11,6 +13,8 @@ export default async function GatehousePage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident) redirect(`/app/${condoId}/dashboard`);
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);

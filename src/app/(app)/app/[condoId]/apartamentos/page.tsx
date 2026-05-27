@@ -1,9 +1,11 @@
 import { Building2, Search } from "lucide-react";
+import { redirect } from "next/navigation";
 import { ApartmentGrid, type ApartmentGridBlock } from "@/components/app/apartment-grid";
 import { EmptyState } from "@/components/common/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getCondominiumAccess } from "@/lib/condominium-access";
 import { getEconomyPageSize } from "@/lib/economy-mode";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -97,6 +99,8 @@ export default async function ApartmentsPage({
   const { condoId } = await params;
   const { q = "", status = "" } = await searchParams;
   const supabase = await createSupabaseServerClient();
+  const access = await getCondominiumAccess(condoId);
+  if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
   const [{ data: condo }, { data: planLimits }, { data: usage }, { data: canViewContacts }, { data: canPrivateNotes }, { data: blockRows }] =
     await Promise.all([
       supabase.from("condominiums").select("name").eq("id", condoId).single(),

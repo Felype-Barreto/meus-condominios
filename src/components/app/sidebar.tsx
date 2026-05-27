@@ -17,7 +17,6 @@ const residentItems = new Set([
   "areas-comuns",
   "solicitacoes",
   "encomendas",
-  "suporte",
 ]);
 const doormanItems = new Set(["dashboard", "guarita", "historico", "encomendas", "ocorrencias", "suporte"]);
 const staffItems = new Set(sidebarItems.map((item) => item.href));
@@ -153,6 +152,8 @@ export function SidebarContent({
     };
   }, [condoId, hasCondo]);
 
+  const accountLinksVisible = role === "subscriber_admin" || role === "admin";
+
   const visibleItems = useMemo(() => {
     const allowed =
       role === null
@@ -163,7 +164,10 @@ export function SidebarContent({
             ? doormanItems
             : staffItems;
 
-    const merged = new Set([...allowed, ...permissionItems]);
+    const merged =
+      role === "resident" || role === "owner"
+        ? allowed
+        : new Set([...allowed, ...permissionItems]);
     return sidebarItems.filter((item) => merged.has(item.href));
   }, [permissionItems, role]);
 
@@ -225,6 +229,8 @@ export function SidebarContent({
           rail ? "p-2 group-hover/sidebar:p-4 group-focus-within/sidebar:p-4" : "p-4",
         )}
       >
+        {accountLinksVisible ? (
+          <>
         <Link
           href="/app/condominios"
           onClick={onNavigate}
@@ -252,6 +258,8 @@ export function SidebarContent({
           <Settings className="h-4 w-4 shrink-0" />
           <RailLabel rail={rail}>Configurações</RailLabel>
         </Link>
+          </>
+        ) : null}
         {isPlatformAdmin ? (
           <Link
             href="/admin"
