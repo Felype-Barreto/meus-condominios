@@ -252,36 +252,62 @@ export function GatePanel({
             <UserPlus className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Operadores da guarita</h2>
           </div>
-          <div className="mt-4 space-y-3">
-            {doormen.length ? (
-              doormen.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex flex-col gap-3 rounded-lg border bg-muted p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {member.profiles?.full_name ?? member.profiles?.email ?? "Operador sem nome"}
-                    </p>
-                    <p className="break-all text-sm text-muted-foreground">
-                      {member.profiles?.email ?? "E-mail não informado"}
-                    </p>
-                    <StatusBadge tone={member.status === "active" ? "success" : "warning"}>
-                      {member.status === "active" ? "Ativo" : "Pendente"}
-                    </StatusBadge>
-                  </div>
-                  <form action={removeDoormanAction}>
-                    <input type="hidden" name="condominium_id" value={condoId} />
-                    <input type="hidden" name="membership_id" value={member.id} />
-                    <Button type="submit" variant="outline" size="sm">
-                      Remover acesso
-                    </Button>
-                  </form>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Nenhum operador de guarita cadastrado.</p>
-            )}
+          <p className="mt-2 text-sm text-muted-foreground">
+            Para plantão, a versão simples recomendada é um botão “Assumir
+            serviço” e “Encerrar serviço” por operador, registrando início e
+            fim no histórico.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-lg border">
+            <table className="w-full min-w-[720px] table-fixed text-sm">
+              <thead className="bg-muted text-left">
+                <tr className="[&>th]:px-4 [&>th]:py-3">
+                  <th className="w-16">Nº</th>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Telefone</th>
+                  <th className="w-28">Status</th>
+                  <th className="w-36">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {doormen.length ? (
+                  doormen.map((member, index) => (
+                    <tr key={member.id} className="h-12 hover:bg-muted/60">
+                      <td className="px-4 py-2">{index + 1}</td>
+                      <td className="truncate px-4 py-2 font-medium">
+                        {member.profiles?.full_name ?? "Operador sem nome"}
+                      </td>
+                      <td className="truncate px-4 py-2">
+                        {member.profiles?.email ?? "E-mail não informado"}
+                      </td>
+                      <td className="truncate px-4 py-2">
+                        {member.profiles?.phone ?? "Não informado"}
+                      </td>
+                      <td className="px-4 py-2">
+                        <StatusBadge tone={member.status === "active" ? "success" : "warning"}>
+                          {member.status === "active" ? "Ativo" : "Pendente"}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-2">
+                        <form action={removeDoormanAction}>
+                          <input type="hidden" name="condominium_id" value={condoId} />
+                          <input type="hidden" name="membership_id" value={member.id} />
+                          <Button type="submit" variant="outline" size="sm">
+                            Remover
+                          </Button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-4 py-5 text-muted-foreground" colSpan={6}>
+                      Nenhum operador de guarita cadastrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </Card>
       ) : null}

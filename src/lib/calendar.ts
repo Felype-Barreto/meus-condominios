@@ -204,7 +204,7 @@ export async function getAvailableTimeSlots(commonAreaId: string, date: string):
   ]);
 
   if (area.available_days?.length && !area.available_days.includes(day.getDay())) return [];
-  const duration = Math.min(Number(area.min_duration_minutes ?? 60), Number(area.max_duration_minutes ?? 240));
+  const duration = Number(area.min_duration_minutes ?? 60);
   const open = set(day, timeParts(area.available_start_time ?? "08:00"));
   const close = set(day, timeParts(area.available_end_time ?? "22:00"));
   const fullDayBlocked = Boolean(blocks?.some((block) => block.full_day));

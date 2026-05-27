@@ -82,6 +82,14 @@ export default async function SyndicPage({
   const primaryProfile = primary
     ? syndicProfiles.find((profile) => profile.membership_id === primary.id)
     : undefined;
+  const syndicRows = syndicMemberships.map((membership, index) => {
+    const profile = syndicProfiles.find((item) => item.membership_id === membership.id);
+    return {
+      number: index + 1,
+      membership,
+      profile,
+    };
+  });
   const appUrl = getPublicAppUrl();
 
   return (
@@ -236,30 +244,61 @@ export default async function SyndicPage({
       ) : null}
 
       <Card className="p-6">
-        <h2 className="text-xl font-semibold">Histórico básico</h2>
-        <div className="mt-5 space-y-3">
-          {syndicProfiles.length ? (
-            syndicProfiles.map((profile) => (
-              <div
-                key={profile.membership_id}
-                className="flex flex-col gap-2 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-semibold">{profile.full_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {profile.professional_note ?? "Sem observação profissional"}
-                  </p>
-                </div>
-                <StatusBadge tone={profile.status === "active" ? "success" : "neutral"}>
-                  {profile.status}
-                </StatusBadge>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nenhum síndico registrado ainda.
-            </p>
-          )}
+        <h2 className="text-xl font-semibold">Síndicos do condomínio</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Lista compacta de quem possui acesso de síndico.
+        </p>
+        <div className="mt-5 overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[760px] table-fixed text-sm">
+            <thead className="bg-muted text-left">
+              <tr className="[&>th]:px-4 [&>th]:py-3">
+                <th className="w-16">Nº</th>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Telefone</th>
+                <th className="w-28">Status</th>
+                <th className="w-32">Tipo</th>
+                <th className="w-36">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {syndicRows.length ? (
+                syndicRows.map(({ number, membership, profile }) => (
+                  <tr key={membership.id} className="h-12 hover:bg-muted/60">
+                    <td className="px-4 py-2">{number}</td>
+                    <td className="truncate px-4 py-2 font-medium">
+                      {profile?.full_name ?? "Perfil em configuração"}
+                    </td>
+                    <td className="truncate px-4 py-2">{profile?.email ?? "Não informado"}</td>
+                    <td className="truncate px-4 py-2">{profile?.phone ?? "Não informado"}</td>
+                    <td className="px-4 py-2">
+                      <StatusBadge tone={membership.status === "active" ? "success" : "warning"}>
+                        {membership.status === "active" ? "Ativo" : "Pendente"}
+                      </StatusBadge>
+                    </td>
+                    <td className="px-4 py-2">
+                      {membership.is_primary_syndic ? "Principal" : "Síndico"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <form action={removeSyndicAction}>
+                        <input type="hidden" name="condoId" value={condoId} />
+                        <input type="hidden" name="membershipId" value={membership.id} />
+                        <Button size="sm" variant="outline" type="submit">
+                          Remover
+                        </Button>
+                      </form>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-4 py-5 text-muted-foreground" colSpan={7}>
+                    Nenhum síndico registrado ainda.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </Card>
     </div>

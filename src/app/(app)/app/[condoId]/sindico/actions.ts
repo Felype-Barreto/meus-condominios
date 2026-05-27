@@ -98,11 +98,92 @@ export async function becomeSyndicAction(formData: FormData) {
 
 export async function inviteSyndicAction(formData: FormData) {
   const condoId = String(formData.get("condoId") ?? "");
-  const email = String(formData.get("email") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const { supabase, user } = await requireCondoAdmin(condoId);
 
   if (!email.includes("@")) {
     throw new Error("Informe um e-mail válido.");
+  }
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id,full_name,email,phone")
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingProfile?.id) {
+    const { data: existingMembership } = await supabase
+      .from("memberships")
+      .select("id,role,status")
+      .eq("condominium_id", condoId)
+      .eq("user_id", existingProfile.id)
+      .in("status", ["pending", "active"])
+      .limit(1)
+      .maybeSingle();
+
+    if (existingMembership) {
+      const { data: createdMembership, error: membershipError } = await supabase
+        .from("memberships")
+        .upsert(
+          {
+            condominium_id: condoId,
+            user_id: existingProfile.id,
+            role: "syndic",
+            status: "active",
+            permissions: defaultSyndicPermissions,
+            is_primary_syndic: false,
+            approved_by: user.id,
+            approved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "condominium_id,user_id,role" },
+        )
+        .select("id")
+        .single();
+
+      if (membershipError || !createdMembership) {
+        throw new Error(membershipError?.message ?? "Não foi possível elevar esta pessoa a síndico.");
+      }
+
+      await supabase.from("syndic_profiles").upsert(
+        {
+          condominium_id: condoId,
+          membership_id: createdMembership.id,
+          full_name: existingProfile.full_name ?? existingProfile.email ?? "Síndico",
+          email: existingProfile.email,
+          phone: existingProfile.phone,
+          professional_note: "Pessoa promovida a síndico pela administração.",
+          start_date: new Date().toISOString().slice(0, 10),
+          status: "active",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "membership_id" },
+      );
+
+      await supabase.from("notifications").insert({
+        condominium_id: condoId,
+        user_id: existingProfile.id,
+        type: "role_update",
+        title: "Você virou síndico",
+        body: "A administração liberou seu acesso de síndico neste condomínio.",
+        href: `/app/${condoId}/dashboard`,
+      });
+
+      await supabase.from("audit_logs").insert({
+        condominium_id: condoId,
+        actor_user_id: user.id,
+        action: "promote_existing_syndic",
+        entity_type: "memberships",
+        entity_id: createdMembership.id,
+        metadata: { email, previous_role: existingMembership.role },
+      });
+
+      revalidatePath(`/app/${condoId}/sindico`);
+      revalidatePath(`/app/${condoId}/moradores`);
+      revalidatePath(`/app/${condoId}/dashboard`);
+      return;
+    }
   }
 
   const token = randomBytes(24).toString("hex");

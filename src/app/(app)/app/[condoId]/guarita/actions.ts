@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { buildPublicUrl } from "@/lib/public-url";
 import { safeActionErrorMessage } from "@/lib/safe-error";
+import { rolePermissionPresets } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   gateIncidentSchema,
@@ -56,9 +57,100 @@ export async function inviteDoormanAction(
 
   try {
     const supabase = await requireUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data: canManageRoles } = await supabase.rpc("has_permission", {
+      condo_id: parsed.data.condominium_id,
+      permission_key: "settings.roles",
+    });
+    if (!canManageRoles) {
+      return { status: "error", message: "Você não tem permissão para gerenciar guarita." };
+    }
+
+    const normalizedEmail = parsed.data.email.trim().toLowerCase();
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id,full_name,email")
+      .ilike("email", normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingProfile?.id) {
+      const { data: existingMembership } = await supabase
+        .from("memberships")
+        .select("id,role,status")
+        .eq("condominium_id", parsed.data.condominium_id)
+        .eq("user_id", existingProfile.id)
+        .in("status", ["pending", "active"])
+        .limit(1)
+        .maybeSingle();
+
+      if (existingMembership) {
+        const { error: limitError, data: limitAllowed } = await supabase.rpc("can_invite_doorman", {
+          condo_id: parsed.data.condominium_id,
+        });
+        if (limitError) return { status: "error", message: safeActionErrorMessage(limitError) };
+        if (!limitAllowed) {
+          return { status: "error", message: "Limite de operadores de guarita atingido no plano atual." };
+        }
+
+        const { data: doormanMembership, error: membershipError } = await supabase
+          .from("memberships")
+          .upsert(
+            {
+              condominium_id: parsed.data.condominium_id,
+              user_id: existingProfile.id,
+              role: "doorman",
+              status: "active",
+              permissions: rolePermissionPresets.doorman,
+              approved_by: user?.id,
+              approved_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "condominium_id,user_id,role" },
+          )
+          .select("id")
+          .single();
+
+        if (membershipError || !doormanMembership) {
+          return {
+            status: "error",
+            message: safeActionErrorMessage(membershipError ?? new Error("Não foi possível elevar esta pessoa à guarita.")),
+          };
+        }
+
+        await supabase.from("notifications").insert({
+          condominium_id: parsed.data.condominium_id,
+          user_id: existingProfile.id,
+          type: "role_update",
+          title: "Acesso de guarita liberado",
+          body: "A administração liberou seu acesso operacional de guarita neste condomínio.",
+          href: `/app/${parsed.data.condominium_id}/guarita`,
+        });
+
+        await supabase.from("audit_logs").insert({
+          condominium_id: parsed.data.condominium_id,
+          actor_user_id: user?.id,
+          action: "promote_existing_doorman",
+          entity_type: "memberships",
+          entity_id: doormanMembership.id,
+          metadata: { email: normalizedEmail, previous_role: existingMembership.role },
+        });
+
+        revalidatePath(`/app/${parsed.data.condominium_id}/guarita`);
+        revalidatePath(`/app/${parsed.data.condominium_id}/moradores`);
+        return {
+          status: "success",
+          message: "Pessoa existente promovida para guarita.",
+        };
+      }
+    }
+
     const { data, error } = await supabase.rpc("invite_doorman", {
       condo_id: parsed.data.condominium_id,
-      invite_email: parsed.data.email,
+      invite_email: normalizedEmail,
       invite_phone: parsed.data.phone,
     });
 

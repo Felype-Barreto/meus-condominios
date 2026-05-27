@@ -148,7 +148,6 @@ export function BookingCalendar({
   const slots = slotsQuery.data?.slots ?? [];
   const selectedStartSlot = slots.find((slot) => slot.startAt === selectedStartAt);
   const minDuration = Number(selectedArea?.min_duration_minutes ?? 60);
-  const maxDuration = Number(selectedArea?.max_duration_minutes ?? 240);
   const availableEndOptions = useMemo(() => {
     if (!selectedStartAt) return [];
     const startIndex = slots.findIndex((slot) => slot.startAt === selectedStartAt);
@@ -161,14 +160,13 @@ export function BookingCalendar({
       if (range.some((item) => !item.available)) break;
 
       const minutes = differenceInMinutes(parseISO(slot.endAt), parseISO(selectedStartAt));
-      if (minutes >= minDuration && minutes <= maxDuration) {
+      if (minutes >= minDuration) {
         options.push(slot);
       }
-      if (minutes >= maxDuration) break;
     }
 
     return options;
-  }, [maxDuration, minDuration, selectedStartAt, slots]);
+  }, [minDuration, selectedStartAt, slots]);
 
   const selectedEndSlot = availableEndOptions.find((slot) => slot.endAt === selectedEndAt);
   const unavailableSlots = slots.filter((slot) => !slot.available);
