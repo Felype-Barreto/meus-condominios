@@ -96,6 +96,9 @@ export function BookingCalendar({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedStartAt, setSelectedStartAt] = useState("");
   const [selectedEndAt, setSelectedEndAt] = useState("");
+  const [selectedApartmentId, setSelectedApartmentId] = useState(
+    apartments.length === 1 ? apartments[0]?.id ?? "" : "",
+  );
   const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null);
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [jumpDate, setJumpDate] = useState<Date>();
@@ -402,7 +405,9 @@ export function BookingCalendar({
                 <Input name="title" defaultValue={selectedArea?.name ? `Reserva - ${selectedArea.name}` : "Reserva"} />
                 <select
                   name="apartment_id"
-                  defaultValue={!adminMode && apartments.length === 1 ? apartments[0].id : ""}
+                  value={selectedApartmentId}
+                  onChange={(event) => setSelectedApartmentId(event.target.value)}
+                  required
                   className="h-12 rounded-lg border bg-card px-3 text-base md:text-sm"
                 >
                   <option value="">Apartamento</option>
@@ -417,7 +422,7 @@ export function BookingCalendar({
                   <input required type="checkbox" className="mt-1 accent-[#7C5C3E]" />
                   Li as regras e aceito as condições de uso da área comum.
                 </label>
-                <Button disabled={pending || !selectedStartAt || !selectedEndAt}>
+                <Button disabled={pending || !selectedStartAt || !selectedEndAt || !selectedApartmentId}>
                   <CheckCircle2 className="h-4 w-4" />
                   {pending ? "Enviando..." : selectedArea?.requires_approval ? "Enviar para aprovação" : "Confirmar reserva"}
                 </Button>

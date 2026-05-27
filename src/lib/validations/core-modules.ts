@@ -40,10 +40,10 @@ export const commonAreaSchema = z.object({
 export const bookingSchema = z.object({
   condominium_id: z.string().uuid(),
   common_area_id: z.string().uuid(),
-  apartment_id: z.string().uuid(),
+  apartment_id: z.string().uuid("Selecione o apartamento da reserva."),
   title: z.string().min(2),
-  start_at: z.string().min(1),
-  end_at: z.string().min(1),
+  start_at: z.string().min(1, "Selecione o horário inicial."),
+  end_at: z.string().min(1, "Selecione o horário final."),
   notes: z.string().optional(),
 });
 

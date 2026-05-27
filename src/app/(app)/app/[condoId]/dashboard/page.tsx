@@ -369,6 +369,7 @@ export default async function DashboardPage({
         <QRCodeCard
           title="QR Code de cadastro e visitantes"
           value={`${appUrl}/visitante/${condo?.public_code ?? condoId}`}
+          condoName={condo?.name ?? "Condomínio"}
         />
         <Card className="p-6">
           <div className="flex items-center gap-3">

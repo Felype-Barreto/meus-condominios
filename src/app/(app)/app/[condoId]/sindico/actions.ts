@@ -113,16 +113,23 @@ export async function inviteSyndicAction(formData: FormData) {
     .maybeSingle();
 
   if (existingProfile?.id) {
-    const { data: existingMembership } = await supabase
+    const { data: existingMemberships } = await supabase
       .from("memberships")
       .select("id,role,status")
       .eq("condominium_id", condoId)
       .eq("user_id", existingProfile.id)
       .in("status", ["pending", "active"])
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
-    if (existingMembership) {
+    if (existingMemberships?.length) {
+      if (existingMemberships.some((membership) => membership.role === "subscriber_admin" || membership.role === "admin")) {
+        throw new Error("Esta conta já tem acesso administrativo ao condomínio.");
+      }
+
+      if (existingMemberships.some((membership) => membership.role === "syndic")) {
+        throw new Error("Este e-mail já possui acesso de síndico neste condomínio.");
+      }
+
       const { data: createdMembership, error: membershipError } = await supabase
         .from("memberships")
         .upsert(
@@ -176,7 +183,7 @@ export async function inviteSyndicAction(formData: FormData) {
         action: "promote_existing_syndic",
         entity_type: "memberships",
         entity_id: createdMembership.id,
-        metadata: { email, previous_role: existingMembership.role },
+        metadata: { email, previous_roles: existingMemberships.map((membership) => membership.role) },
       });
 
       revalidatePath(`/app/${condoId}/sindico`);
@@ -194,7 +201,7 @@ export async function inviteSyndicAction(formData: FormData) {
     invite_type: "syndic",
     role: "syndic",
     email,
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     status: "active",
   });
 

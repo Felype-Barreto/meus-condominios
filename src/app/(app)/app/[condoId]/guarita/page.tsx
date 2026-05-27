@@ -83,7 +83,7 @@ export default async function GatehousePage({
       .select("id,status,profiles!memberships_user_id_fkey(full_name,email,phone)")
       .eq("condominium_id", condoId)
       .eq("role", "doorman")
-      .in("status", ["active", "pending"])
+      .in("status", ["active", "pending", "suspended"])
       .order("created_at", { ascending: false }),
     canInviteDoorman(condoId),
   ]);

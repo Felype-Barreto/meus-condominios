@@ -21,6 +21,7 @@ import {
   markPackagePickedUpAction,
   removeDoormanAction,
   searchGateApartmentAction,
+  setDoormanStatusAction,
   type GateActionState,
 } from "@/app/(app)/app/[condoId]/guarita/actions";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -227,6 +228,10 @@ export function GatePanel({
               <UserPlus className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-semibold">Convidar guarita</h2>
             </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              O convite expira em 10 minutos. Se o e-mail já estiver em Pessoas,
+              o acesso de guarita é liberado sem criar nova conta.
+            </p>
             <form action={inviteAction} className="mt-4 space-y-3">
               <input type="hidden" name="condominium_id" value={condoId} />
               <Input name="email" type="email" placeholder="operador@email.com" />
@@ -252,11 +257,6 @@ export function GatePanel({
             <UserPlus className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Operadores da guarita</h2>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Para plantão, a versão simples recomendada é um botão “Assumir
-            serviço” e “Encerrar serviço” por operador, registrando início e
-            fim no histórico.
-          </p>
           <div className="mt-4 overflow-x-auto rounded-lg border">
             <table className="w-full min-w-[720px] table-fixed text-sm">
               <thead className="bg-muted text-left">
@@ -266,7 +266,7 @@ export function GatePanel({
                   <th>E-mail</th>
                   <th>Telefone</th>
                   <th className="w-28">Status</th>
-                  <th className="w-36">Ação</th>
+                  <th className="w-48">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -284,11 +284,19 @@ export function GatePanel({
                         {member.profiles?.phone ?? "Não informado"}
                       </td>
                       <td className="px-4 py-2">
-                        <StatusBadge tone={member.status === "active" ? "success" : "warning"}>
-                          {member.status === "active" ? "Ativo" : "Pendente"}
+                        <StatusBadge tone={member.status === "active" ? "success" : member.status === "suspended" ? "neutral" : "warning"}>
+                          {member.status === "active" ? "Ativo" : member.status === "suspended" ? "Desativado" : "Pendente"}
                         </StatusBadge>
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="flex gap-2 px-4 py-2">
+                        <form action={setDoormanStatusAction}>
+                          <input type="hidden" name="condominium_id" value={condoId} />
+                          <input type="hidden" name="membership_id" value={member.id} />
+                          <input type="hidden" name="status" value={member.status === "active" ? "suspended" : "active"} />
+                          <Button type="submit" variant="outline" size="sm">
+                            {member.status === "active" ? "Desativar" : "Ativar"}
+                          </Button>
+                        </form>
                         <form action={removeDoormanAction}>
                           <input type="hidden" name="condominium_id" value={condoId} />
                           <input type="hidden" name="membership_id" value={member.id} />

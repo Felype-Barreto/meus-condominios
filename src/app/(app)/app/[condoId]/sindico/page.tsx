@@ -181,8 +181,8 @@ export default async function SyndicPage({
       <Card id="convidar-sindico" className="p-6">
         <h2 className="text-xl font-semibold">Convidar síndico</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          O convite cria um cadastro simples de síndico e pode ser aprovado
-          automaticamente conforme configuração do condomínio.
+          O convite expira em 10 minutos. Se o e-mail já estiver em Pessoas,
+          ele pode ser elevado a síndico sem criar nova conta.
         </p>
         <form action={inviteSyndicAction} className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
           <input type="hidden" name="condoId" value={condoId} />

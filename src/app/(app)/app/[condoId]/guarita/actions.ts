@@ -78,16 +78,23 @@ export async function inviteDoormanAction(
       .maybeSingle();
 
     if (existingProfile?.id) {
-      const { data: existingMembership } = await supabase
+      const { data: existingMemberships } = await supabase
         .from("memberships")
         .select("id,role,status")
         .eq("condominium_id", parsed.data.condominium_id)
         .eq("user_id", existingProfile.id)
         .in("status", ["pending", "active"])
-        .limit(1)
-        .maybeSingle();
+        .limit(10);
 
-      if (existingMembership) {
+      if (existingMemberships?.length) {
+        if (existingMemberships.some((membership) => membership.role === "subscriber_admin" || membership.role === "admin")) {
+          return { status: "error", message: "Esta conta já tem acesso administrativo ao condomínio." };
+        }
+
+        if (existingMemberships.some((membership) => membership.role === "doorman")) {
+          return { status: "error", message: "Este e-mail já possui acesso de guarita neste condomínio." };
+        }
+
         const { error: limitError, data: limitAllowed } = await supabase.rpc("can_invite_doorman", {
           condo_id: parsed.data.condominium_id,
         });
@@ -136,7 +143,7 @@ export async function inviteDoormanAction(
           action: "promote_existing_doorman",
           entity_type: "memberships",
           entity_id: doormanMembership.id,
-          metadata: { email: normalizedEmail, previous_role: existingMembership.role },
+          metadata: { email: normalizedEmail, previous_roles: existingMemberships.map((membership) => membership.role) },
         });
 
         revalidatePath(`/app/${parsed.data.condominium_id}/guarita`);
@@ -185,6 +192,40 @@ export async function removeDoormanAction(formData: FormData) {
     .from("memberships")
     .update({
       status: "suspended",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", membershipId)
+    .eq("condominium_id", condoId)
+    .eq("role", "doorman");
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/app/${condoId}/guarita`);
+  revalidatePath(`/app/${condoId}/permissoes`);
+}
+
+export async function setDoormanStatusAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id") ?? "");
+  const membershipId = String(formData.get("membership_id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!["active", "suspended"].includes(status)) {
+    throw new Error("Status inválido.");
+  }
+
+  const supabase = await requireUser();
+  const { data: canManageRoles } = await supabase.rpc("has_permission", {
+    condo_id: condoId,
+    permission_key: "settings.roles",
+  });
+
+  if (!canManageRoles) {
+    throw new Error("Você não tem permissão para alterar guarita.");
+  }
+
+  const { error } = await supabase
+    .from("memberships")
+    .update({
+      status,
       updated_at: new Date().toISOString(),
     })
     .eq("id", membershipId)
