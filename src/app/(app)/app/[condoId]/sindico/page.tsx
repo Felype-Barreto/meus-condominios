@@ -61,6 +61,7 @@ export default async function SyndicPage({
         .select("id,role,status,permissions,is_primary_syndic,user_id")
         .eq("condominium_id", condoId)
         .or("role.eq.syndic,is_primary_syndic.eq.true")
+        .in("status", ["active", "pending"])
         .order("created_at", { ascending: false }),
       supabase
         .from("syndic_profiles")

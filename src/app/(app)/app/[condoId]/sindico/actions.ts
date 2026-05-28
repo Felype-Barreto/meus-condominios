@@ -238,22 +238,33 @@ export async function removeSyndicAction(formData: FormData) {
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("role")
+    .select("id,role,user_id")
     .eq("id", membershipId)
     .eq("condominium_id", condoId)
     .single();
 
+  if (!membership) {
+    throw new Error("Síndico não encontrado neste condomínio.");
+  }
+
   if (membership?.role === "subscriber_admin") {
     const { error } = await supabase
       .from("memberships")
-      .update({ is_primary_syndic: false, permissions: {} })
+      .update({ is_primary_syndic: false, permissions: {}, updated_at: new Date().toISOString() })
       .eq("id", membershipId);
     if (error) throw new Error(error.message);
   } else {
     const { error } = await supabase
       .from("memberships")
-      .update({ status: "suspended", is_primary_syndic: false })
-      .eq("id", membershipId);
+      .update({
+        status: "suspended",
+        is_primary_syndic: false,
+        permissions: {},
+        updated_at: new Date().toISOString(),
+      })
+      .eq("condominium_id", condoId)
+      .eq("role", "syndic")
+      .eq("user_id", membership?.user_id);
     if (error) throw new Error(error.message);
   }
 
@@ -272,6 +283,7 @@ export async function removeSyndicAction(formData: FormData) {
 
   revalidatePath(`/app/${condoId}/sindico`);
   revalidatePath(`/app/${condoId}/moradores`);
+  revalidatePath(`/app/${condoId}/permissoes`);
   revalidatePath(`/app/${condoId}/dashboard`);
 }
 
