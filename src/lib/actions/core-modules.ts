@@ -12,7 +12,9 @@ import { safeActionErrorMessage } from "@/lib/safe-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createBooking } from "@/lib/calendar";
 import {
+  announcementDeleteSchema,
   announcementSchema,
+  announcementUpdateSchema,
   apartmentUpdateSchema,
   bookingSchema,
   commonAreaSchema,
@@ -70,6 +72,45 @@ function parseTargetIds(value?: string) {
       .map((item) => item.trim())
       .filter(Boolean);
   }
+}
+
+function localDateToIso(date: string, endOfDay = false) {
+  if (!date) return null;
+  const time = endOfDay ? "23:59:59.999" : "00:00:00.000";
+  return new Date(`${date}T${time}-03:00`).toISOString();
+}
+
+function addDaysIso(date: string, days: number) {
+  const start = new Date(`${date}T00:00:00.000-03:00`);
+  start.setDate(start.getDate() + days - 1);
+  start.setHours(23, 59, 59, 999);
+  return start.toISOString();
+}
+
+function parseAnnouncementPeriod(data: {
+  starts_on?: string;
+  ends_on?: string;
+  duration_preset?: "1" | "3" | "7" | "custom" | "indefinite";
+}) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const startsOn = data.starts_on || today;
+  const startsAt = localDateToIso(startsOn) ?? new Date().toISOString();
+
+  if (data.duration_preset === "indefinite") {
+    return { startsAt, expiresAt: null };
+  }
+
+  if (data.duration_preset === "custom") {
+    if (!data.ends_on) throw new Error("Informe a data final do aviso.");
+    const expiresAt = localDateToIso(data.ends_on, true);
+    if (!expiresAt || new Date(expiresAt) < new Date(startsAt)) {
+      throw new Error("A data final precisa ser igual ou posterior à data inicial.");
+    }
+    return { startsAt, expiresAt };
+  }
+
+  const days = Number(data.duration_preset ?? "3");
+  return { startsAt, expiresAt: addDaysIso(startsOn, days) };
 }
 
 async function getActiveMembershipRole(
@@ -182,6 +223,7 @@ export async function createAnnouncementAction(
             parsed.data.target_id ? [parsed.data.target_id] : [],
           );
 
+    const { startsAt, expiresAt } = parseAnnouncementPeriod(parsed.data);
     const { data, error } = await supabase
       .from("announcements")
       .insert({
@@ -194,6 +236,8 @@ export async function createAnnouncementAction(
         urgent: parsed.data.urgent,
         pinned: parsed.data.pinned,
         allow_comments: false,
+        starts_at: startsAt,
+        expires_at: expiresAt,
       })
       .select("id")
       .single();
@@ -205,6 +249,71 @@ export async function createAnnouncementAction(
   } catch (error) {
     return { status: "error", message: errorMessage(error) };
   }
+}
+
+export async function updateAnnouncementAction(
+  _s: ModuleActionState,
+  formData: FormData,
+): Promise<ModuleActionState> {
+  const parsed = announcementUpdateSchema.safeParse({
+    ...Object.fromEntries(formData),
+    urgent: formData.get("urgent") === "on",
+    pinned: formData.get("pinned") === "on",
+  });
+  if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
+  try {
+    const { supabase, userId } = await currentUserId();
+    const membership = await assertPermission(supabase, parsed.data.condominium_id, userId, "announcements.edit");
+    if (membership.role === "resident" || membership.role === "owner" || membership.role === "doorman") {
+      throw new Error("Sem permissão para editar avisos.");
+    }
+    const targetIds =
+      parsed.data.target_type === "all"
+        ? []
+        : parseTargetIds(parsed.data.target_ids).concat(
+            parsed.data.target_id ? [parsed.data.target_id] : [],
+          );
+    const { startsAt, expiresAt } = parseAnnouncementPeriod(parsed.data);
+    const { error } = await supabase
+      .from("announcements")
+      .update({
+        title: parsed.data.title,
+        body: parsed.data.body,
+        target_type: parsed.data.target_type,
+        target_ids: targetIds.length ? Array.from(new Set(targetIds)) : null,
+        urgent: parsed.data.urgent,
+        pinned: parsed.data.pinned,
+        starts_at: startsAt,
+        expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.data.announcement_id)
+      .eq("condominium_id", parsed.data.condominium_id);
+    if (error) throw error;
+    await audit(parsed.data.condominium_id, "update_announcement", "announcements", parsed.data.announcement_id);
+    revalidatePath(`/app/${parsed.data.condominium_id}/comunicados`);
+    return { status: "success", message: "Aviso atualizado." };
+  } catch (error) {
+    return { status: "error", message: errorMessage(error) };
+  }
+}
+
+export async function deleteAnnouncementAction(formData: FormData) {
+  const parsed = announcementDeleteSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  const { supabase, userId } = await currentUserId();
+  const membership = await assertPermission(supabase, parsed.data.condominium_id, userId, "announcements.delete");
+  if (membership.role === "resident" || membership.role === "owner" || membership.role === "doorman") {
+    throw new Error("Sem permissão para excluir avisos.");
+  }
+  const { error } = await supabase
+    .from("announcements")
+    .delete()
+    .eq("id", parsed.data.announcement_id)
+    .eq("condominium_id", parsed.data.condominium_id);
+  if (error) throw error;
+  await audit(parsed.data.condominium_id, "delete_announcement", "announcements", parsed.data.announcement_id);
+  revalidatePath(`/app/${parsed.data.condominium_id}/comunicados`);
 }
 
 export async function markAnnouncementReadAction(formData: FormData) {

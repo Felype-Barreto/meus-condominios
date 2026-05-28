@@ -15,8 +15,20 @@ export const announcementSchema = z.object({
   target_type: z.enum(["all", "block", "apartment", "role"]).default("all"),
   target_id: z.string().uuid().optional().or(z.literal("")),
   target_ids: z.string().optional(),
+  starts_on: z.string().optional(),
+  ends_on: z.string().optional(),
+  duration_preset: z.enum(["1", "3", "7", "custom", "indefinite"]).default("3"),
   urgent: z.boolean().default(false),
   pinned: z.boolean().default(false),
+});
+
+export const announcementUpdateSchema = announcementSchema.extend({
+  announcement_id: z.string().uuid(),
+});
+
+export const announcementDeleteSchema = z.object({
+  condominium_id: z.string().uuid(),
+  announcement_id: z.string().uuid(),
 });
 
 export const commonAreaSchema = z.object({
