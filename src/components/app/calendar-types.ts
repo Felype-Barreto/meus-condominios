@@ -34,4 +34,5 @@ export type CalendarBooking = {
   private_details?: boolean;
   common_areas?: { name: string | null } | null;
   apartments?: { number: string | null; blocks?: { name: string | null } | null } | null;
+  profiles?: { full_name: string | null; email: string | null } | null;
 };

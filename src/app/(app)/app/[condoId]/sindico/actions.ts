@@ -53,6 +53,18 @@ export async function becomeSyndicAction(formData: FormData) {
     .eq("condominium_id", condoId)
     .eq("is_primary_syndic", true);
 
+  await supabase
+    .from("memberships")
+    .update({
+      status: "suspended",
+      is_primary_syndic: false,
+      permissions: {},
+      updated_at: new Date().toISOString(),
+    })
+    .eq("condominium_id", condoId)
+    .eq("role", "syndic")
+    .eq("status", "active");
+
   const { error } = await supabase
     .from("memberships")
     .update({
@@ -93,6 +105,7 @@ export async function becomeSyndicAction(formData: FormData) {
   });
 
   revalidatePath(`/app/${condoId}/sindico`);
+  revalidatePath(`/app/${condoId}/moradores`);
   revalidatePath(`/app/${condoId}/dashboard`);
 }
 
@@ -258,6 +271,7 @@ export async function removeSyndicAction(formData: FormData) {
   });
 
   revalidatePath(`/app/${condoId}/sindico`);
+  revalidatePath(`/app/${condoId}/moradores`);
   revalidatePath(`/app/${condoId}/dashboard`);
 }
 

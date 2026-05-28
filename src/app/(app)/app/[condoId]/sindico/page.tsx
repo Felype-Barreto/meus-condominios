@@ -45,6 +45,7 @@ export default async function SyndicPage({
 }) {
   const { condoId } = await params;
   const supabase = await createSupabaseServerClient();
+  await supabase.rpc("expire_stale_invites");
   const access = await getCondominiumAccess(condoId);
   if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
 
@@ -71,6 +72,9 @@ export default async function SyndicPage({
         .select("token,email,status,created_at,expires_at")
         .eq("condominium_id", condoId)
         .eq("invite_type", "syndic")
+        .eq("status", "active")
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false }),
     ]);
 

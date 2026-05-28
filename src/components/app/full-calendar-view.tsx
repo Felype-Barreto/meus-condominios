@@ -34,7 +34,10 @@ export function FullCalendarView({
   const calendarRef = useRef<FullCalendar>(null);
   const events: EventInput[] = bookings.map((booking) => ({
     id: booking.id,
-    title: booking.title || booking.common_areas?.name || "Reserva",
+    title: [
+      booking.title || booking.common_areas?.name || "Reserva",
+      booking.profiles?.full_name ? `por ${booking.profiles.full_name}` : null,
+    ].filter(Boolean).join(" - "),
     start: booking.start_at,
     end: booking.end_at,
     classNames: [statusClass[booking.status] ?? "morai-event-pending"],
@@ -63,6 +66,7 @@ export function FullCalendarView({
         list: "Lista",
       }}
       locale="pt-br"
+      timeZone="America/Sao_Paulo"
       height="auto"
       events={events}
       nowIndicator

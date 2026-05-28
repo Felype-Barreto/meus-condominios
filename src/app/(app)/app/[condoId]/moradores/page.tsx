@@ -223,6 +223,7 @@ export default async function PeoplePage({
   const { condoId } = await params;
   const filters = (await searchParams) ?? {};
   const supabase = await createSupabaseServerClient();
+  await supabase.rpc("expire_stale_invites");
   const access = await getCondominiumAccess(condoId);
   if (access.isResident || access.isDoorman) redirect(`/app/${condoId}/dashboard`);
   const {
@@ -407,7 +408,52 @@ export default async function PeoplePage({
       </div>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="divide-y md:hidden">
+          {rows.length ? (
+            rows.map((row, index) => {
+              const modalId = `person-mobile-${row.id}`;
+              return (
+                <div key={row.id} className="p-4">
+                  <input id={modalId} type="checkbox" className="peer sr-only" />
+                  <label htmlFor={modalId} className="flex cursor-pointer items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-muted-foreground">#{index + 1} · {roleLabel(row.role)}</p>
+                      <p className="truncate text-sm font-semibold">{row.profiles?.full_name ?? "Sem nome"}</p>
+                      <p className="truncate text-xs text-muted-foreground">{apartmentLabel(row)}</p>
+                    </div>
+                    <StatusBadge tone={row.status === "active" ? "success" : row.status === "pending" ? "warning" : "neutral"}>
+                      {row.status === "active" ? "Ativo" : row.status === "pending" ? "Pendente" : row.status}
+                    </StatusBadge>
+                  </label>
+                  <div className="mt-3 hidden rounded-lg border bg-background p-3 text-sm peer-checked:block">
+                    <p><span className="text-muted-foreground">E-mail:</span> {row.profiles?.email ?? "Nao informado"}</p>
+                    <p className="mt-1"><span className="text-muted-foreground">Telefone:</span> {getContactLabel(row, phoneVisible)}</p>
+                    <p className="mt-1"><span className="text-muted-foreground">Criado em:</span> {formatDate(row.created_at)}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {row.role !== "subscriber_admin" && row.profiles?.email ? (
+                        <form action={sendPasswordResetForPersonAction}>
+                          <input type="hidden" name="condominium_id" value={condoId} />
+                          <input type="hidden" name="membership_id" value={row.id} />
+                          <Button type="submit" size="sm" variant="outline">Redefinir senha</Button>
+                        </form>
+                      ) : null}
+                      {row.role !== "subscriber_admin" ? (
+                        <form action={removePersonMembershipAction}>
+                          <input type="hidden" name="condominium_id" value={condoId} />
+                          <input type="hidden" name="membership_id" value={row.id} />
+                          <Button type="submit" size="sm" variant="outline">Excluir</Button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="p-4 text-sm text-muted-foreground">Nenhuma pessoa encontrada com os filtros atuais.</p>
+          )}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[1120px] table-fixed border-collapse text-xs">
             <thead className="bg-muted/70 text-left text-[0.72rem] uppercase text-muted-foreground">
               <tr className="border-b">

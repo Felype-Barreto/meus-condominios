@@ -117,7 +117,7 @@ export async function getCalendarEvents(
   const viewer = await getViewer(condoId);
   let query = viewer.supabase
     .from("bookings")
-    .select("id,condominium_id,common_area_id,apartment_id,user_id,title,start_at,end_at,status,notes,common_areas(name),apartments(number,blocks(name))")
+    .select("id,condominium_id,common_area_id,apartment_id,user_id,title,start_at,end_at,status,notes,common_areas(name),apartments(number,blocks(name)),profiles!bookings_user_id_fkey(full_name,email)")
     .eq("condominium_id", condoId)
     .lt("start_at", endDate.toISOString())
     .gt("end_at", startDate.toISOString())

@@ -21,6 +21,7 @@ export default async function InvitePage({
 }) {
   const { token } = await params;
   const supabase = await createSupabaseServerClient();
+  await supabase.rpc("expire_stale_invites");
   const { data, error } = await supabase.rpc("get_invite_public", {
     invite_token: token,
   });

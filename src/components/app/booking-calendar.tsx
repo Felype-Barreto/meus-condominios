@@ -495,6 +495,9 @@ export function BookingCalendar({
               <p className="mt-1 text-sm text-muted-foreground">
                 {selectedBooking.apartments?.blocks?.name ?? "Bloco"} - {selectedBooking.apartments?.number ?? "Apartamento"}
               </p>
+              <p className="mt-1 text-sm font-medium">
+                Reservado por: {selectedBooking.profiles?.full_name ?? selectedBooking.profiles?.email ?? "Nao informado"}
+              </p>
             </div>
             <button type="button" onClick={() => setSelectedBooking(null)} className="rounded-lg p-2 hover:bg-muted">
               <XCircle className="h-5 w-5" />

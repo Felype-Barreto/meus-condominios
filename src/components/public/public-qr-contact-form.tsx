@@ -25,16 +25,19 @@ export function PublicQrContactForm({ publicCode }: { publicCode: string }) {
         <input name="public_code" type="hidden" value={publicCode} />
         <div>
           <label className="text-sm font-semibold" htmlFor="search">
-            Com quem você deseja falar?
+            Informe o bloco e apartamento
           </label>
           <Input
             id="search"
             name="search"
             autoComplete="off"
-            placeholder="Nome ou apartamento"
+            placeholder="Ex: Bloco A 103 ou A 103"
             required
             className="mt-2"
           />
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            Por segurança, procure pelo apartamento. O site não mostra nome ou telefone do morador.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

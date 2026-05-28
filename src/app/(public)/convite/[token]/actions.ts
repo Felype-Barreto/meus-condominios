@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { getPublicAppUrl } from "@/lib/public-url";
 import { safeActionErrorMessage } from "@/lib/safe-error";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { acceptSyndicInviteSchema } from "@/lib/validations/condominium";
 import { acceptDoormanInviteSchema } from "@/lib/validations/doorman";
 import { acceptResidentInviteSchema } from "@/lib/validations/resident-invite";
@@ -67,6 +68,41 @@ async function ensureInvitePasswordUser(
 
   if (signInResult.data.user) {
     return { user: signInResult.data.user };
+  }
+
+  const service = createSupabaseServiceClient();
+  const createdByInvite = await service.auth.admin.createUser({
+    email: submittedEmail,
+    password: input.password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: input.fullName,
+      phone: input.phone ?? "",
+      invite_token: input.token,
+      source: "condominium_invite",
+    },
+  });
+
+  if (createdByInvite.data.user) {
+    const signInCreated = await supabase.auth.signInWithPassword({
+      email: submittedEmail,
+      password: input.password,
+    });
+
+    if (signInCreated.data.user) return { user: signInCreated.data.user };
+  }
+
+  if (createdByInvite.error) {
+    const lower = createdByInvite.error.message.toLowerCase();
+    if (lower.includes("already") || lower.includes("registered") || lower.includes("exists")) {
+      return {
+        state: {
+          status: "error",
+          message:
+            "Este e-mail ja possui uma conta. Use a senha existente ou redefina a senha antes de concluir o convite.",
+        },
+      };
+    }
   }
 
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
