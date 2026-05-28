@@ -1,4 +1,4 @@
-import { addDays, addMinutes, differenceInCalendarDays, format, isBefore, parseISO, set } from "date-fns";
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CalendarArea, CalendarBooking } from "@/components/app/calendar-types";
 
@@ -19,6 +19,21 @@ export type AvailableTimeSlot = {
 function timeParts(value = "08:00") {
   const [hours = "8", minutes = "0"] = value.split(":");
   return { hours: Number(hours), minutes: Number(minutes), seconds: 0, milliseconds: 0 };
+}
+
+function timeToMinutes(value = "08:00") {
+  const { hours, minutes } = timeParts(value);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(value: number) {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function zonedDateTimeIso(date: string, minutes: number) {
+  return parseISO(`${date}T${minutesToTime(minutes)}:00-03:00`).toISOString();
 }
 
 async function getViewer(condoId: string) {
@@ -172,7 +187,7 @@ export async function getCalendarEvents(
 
 export async function getAvailableTimeSlots(commonAreaId: string, date: string): Promise<AvailableTimeSlot[]> {
   const supabase = await createSupabaseServerClient();
-  const day = parseISO(`${date}T12:00:00`);
+  const day = parseISO(`${date}T12:00:00-03:00`);
   if (Number.isNaN(day.getTime())) throw new Error("Dia inválido.");
 
   const { data: area, error } = await supabase
@@ -191,8 +206,8 @@ export async function getAvailableTimeSlots(commonAreaId: string, date: string):
       .select("id,start_at,end_at,status")
       .eq("common_area_id", commonAreaId)
       .in("status", ["pending", "approved"])
-      .gte("start_at", set(day, timeParts("00:00")).toISOString())
-      .lt("start_at", addDays(set(day, timeParts("00:00")), 1).toISOString())
+      .gte("start_at", zonedDateTimeIso(date, 0))
+      .lt("start_at", addDays(parseISO(`${date}T00:00:00-03:00`), 1).toISOString())
       .limit(80),
     supabase
       .from("common_area_blocked_dates")
@@ -205,25 +220,31 @@ export async function getAvailableTimeSlots(commonAreaId: string, date: string):
 
   if (area.available_days?.length && !area.available_days.includes(day.getDay())) return [];
   const duration = Number(area.min_duration_minutes ?? 60);
-  const open = set(day, timeParts(area.available_start_time ?? "08:00"));
-  const close = set(day, timeParts(area.available_end_time ?? "22:00"));
+  const openMinutes = timeToMinutes(area.available_start_time ?? "08:00");
+  const closeMinutes = timeToMinutes(area.available_end_time ?? "22:00");
   const fullDayBlocked = Boolean(blocks?.some((block) => block.full_day));
   const slots: AvailableTimeSlot[] = [];
 
-  for (let cursor = open; isBefore(addMinutes(cursor, duration), addMinutes(close, 1)); cursor = addMinutes(cursor, duration)) {
-    const slotEnd = addMinutes(cursor, duration);
-    const conflict = Boolean(bookings?.some((booking) => cursor < parseISO(booking.end_at) && slotEnd > parseISO(booking.start_at)));
+  for (let cursor = openMinutes; cursor + duration <= closeMinutes; cursor += duration) {
+    const slotEndMinutes = cursor + duration;
+    const startAt = zonedDateTimeIso(date, cursor);
+    const endAt = zonedDateTimeIso(date, slotEndMinutes);
+    const slotStart = parseISO(startAt);
+    const slotEnd = parseISO(endAt);
+    const startTime = `${minutesToTime(cursor)}:00`;
+    const endTime = `${minutesToTime(slotEndMinutes)}:00`;
+    const conflict = Boolean(bookings?.some((booking) => slotStart < parseISO(booking.end_at) && slotEnd > parseISO(booking.start_at)));
     const blocked = Boolean(blocks?.some((block) =>
       !block.full_day &&
       block.start_time &&
       block.end_time &&
-      format(cursor, "HH:mm:ss") < block.end_time &&
-      format(slotEnd, "HH:mm:ss") > block.start_time,
+      startTime < block.end_time &&
+      endTime > block.start_time,
     ));
     slots.push({
-      label: `${format(cursor, "HH:mm")} - ${format(slotEnd, "HH:mm")}`,
-      startAt: cursor.toISOString(),
-      endAt: slotEnd.toISOString(),
+      label: `${minutesToTime(cursor)} - ${minutesToTime(slotEndMinutes)}`,
+      startAt,
+      endAt,
       available: !fullDayBlocked && !blocked && !conflict,
       reason: fullDayBlocked ? "Data bloqueada" : blocked ? "Horário bloqueado" : conflict ? "Já reservado" : undefined,
     });

@@ -23,7 +23,7 @@ export const commonAreaSchema = z.object({
   condominium_id: z.string().uuid(),
   name: z.string().min(2, "Informe o nome."),
   description: z.string().optional(),
-  capacity: z.coerce.number().int().min(1).optional(),
+  capacity: z.coerce.number().int().min(1, "Informe a capacidade máxima da área."),
   rules: z.string().optional(),
   requires_approval: z.boolean().default(false),
   active: z.boolean().default(true),

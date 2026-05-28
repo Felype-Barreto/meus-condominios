@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { differenceInMinutes, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckCircle2, Info, Loader2, XCircle } from "lucide-react";
+import { Calendar, CheckCircle2, Clock3, Info, Loader2, MapPin, ShieldCheck, XCircle } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
@@ -173,6 +173,12 @@ export function BookingCalendar({
 
   const selectedEndSlot = availableEndOptions.find((slot) => slot.endAt === selectedEndAt);
   const unavailableSlots = slots.filter((slot) => !slot.available);
+  const availableDayLabels = selectedArea?.available_days?.length
+    ? selectedArea.available_days
+        .map((day) => ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][day])
+        .filter(Boolean)
+        .join(", ")
+    : "Todos os dias";
 
   useEffect(() => {
     if (state.status !== "success") return;
@@ -208,60 +214,92 @@ export function BookingCalendar({
   return (
     <div className="space-y-5">
       <Card className="p-4 md:p-5">
-        <div className="grid gap-3 md:grid-cols-4">
-          <select
-            value={selectedAreaId}
-            onChange={(event) => {
-              setSelectedAreaId(event.target.value);
-              setSelectedStartAt("");
-              setSelectedEndAt("");
-            }}
-            className="h-12 rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
-          >
-            {areas.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-12 rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
-          >
-            <option value="all">Todos os status</option>
-            <option value="pending">Pendentes</option>
-            <option value="approved">Aprovados</option>
-            <option value="rejected">Recusados</option>
-            <option value="canceled">Cancelados</option>
-            <option value="blocked">Bloqueios</option>
-          </select>
-          {adminMode ? (
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
+          <div>
+            <label className="text-sm font-semibold" htmlFor="calendar-area">
+              Área comum para reservar
+            </label>
             <select
-              value={apartmentFilter}
-              onChange={(event) => setApartmentFilter(event.target.value)}
-              className="h-12 rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
+              id="calendar-area"
+              value={selectedAreaId}
+              onChange={(event) => {
+                setSelectedAreaId(event.target.value);
+                setSelectedStartAt("");
+                setSelectedEndAt("");
+              }}
+              className="mt-2 h-12 w-full rounded-lg border bg-card px-3 text-base font-semibold outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
             >
-              <option value="all">Todos os apartamentos</option>
-              {apartments.map((apartment) => (
-                <option key={apartment.id} value={apartment.id}>
-                  {apartment.blocks?.name ?? "Bloco"} - {apartment.number}
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
                 </option>
               ))}
             </select>
-          ) : null}
-          <label className="grid h-12 items-center rounded-lg border bg-card px-3 text-xs font-semibold text-muted-foreground">
-            Ir para mes
-            <input
-              type="month"
-              value={jumpDate ? format(jumpDate, "yyyy-MM") : ""}
-              onChange={(event) => {
-                if (event.target.value) setJumpDate(parseISO(`${event.target.value}-01`));
-              }}
-              className="bg-transparent text-sm font-medium text-foreground outline-none"
-            />
-          </label>
+            <div className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+              <span className="flex items-center gap-2 rounded-lg border bg-background p-3">
+                <Clock3 className="h-4 w-4 text-primary" />
+                {selectedArea?.available_start_time ?? "08:00"} até {selectedArea?.available_end_time ?? "22:00"}
+              </span>
+              <span className="flex items-center gap-2 rounded-lg border bg-background p-3">
+                <MapPin className="h-4 w-4 text-primary" />
+                {availableDayLabels}
+              </span>
+              <span className="flex items-center gap-2 rounded-lg border bg-background p-3">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                {selectedArea?.requires_approval ? "Aprovação necessária" : "Aprovação automática"}
+              </span>
+            </div>
+          </div>
+          <div className="rounded-lg border bg-background p-3">
+            <p className="text-sm font-semibold">Regras da área</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {selectedArea?.rules || "Nenhuma regra específica cadastrada para esta área."}
+            </p>
+          </div>
         </div>
+
+        <details className="mt-4 rounded-lg border bg-background p-3">
+          <summary className="cursor-pointer text-sm font-semibold">Filtros da agenda</summary>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="h-12 rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
+            >
+              <option value="all">Todos os status</option>
+              <option value="pending">Pendentes</option>
+              <option value="approved">Aprovados</option>
+              <option value="rejected">Recusados</option>
+              <option value="canceled">Cancelados</option>
+              <option value="blocked">Bloqueios</option>
+            </select>
+            {adminMode ? (
+              <select
+                value={apartmentFilter}
+                onChange={(event) => setApartmentFilter(event.target.value)}
+                className="h-12 rounded-lg border bg-card px-3 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25 md:text-sm"
+              >
+                <option value="all">Todos os apartamentos</option>
+                {apartments.map((apartment) => (
+                  <option key={apartment.id} value={apartment.id}>
+                    {apartment.blocks?.name ?? "Bloco"} - {apartment.number}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            <label className="grid h-12 items-center rounded-lg border bg-card px-3 text-xs font-semibold text-muted-foreground">
+              Ir para mês
+              <input
+                type="month"
+                value={jumpDate ? format(jumpDate, "yyyy-MM") : ""}
+                onChange={(event) => {
+                  if (event.target.value) setJumpDate(parseISO(`${event.target.value}-01`));
+                }}
+                className="bg-transparent text-sm font-medium text-foreground outline-none"
+              />
+            </label>
+          </div>
+        </details>
       </Card>
 
       {areas.length ? (

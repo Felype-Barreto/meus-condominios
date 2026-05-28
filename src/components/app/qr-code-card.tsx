@@ -18,10 +18,12 @@ export function QRCodeCard({
   const qrRef = useRef<HTMLDivElement>(null);
 
   function openPrintPoster() {
-    const qrMarkup = qrRef.current?.querySelector("svg")?.outerHTML;
-    if (!qrMarkup) return;
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+    const qrMarkup = new XMLSerializer().serializeToString(svg);
+    const qrDataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrMarkup)}`;
 
-    const posterWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
+    const posterWindow = window.open("", "_blank", "width=900,height=1100");
     if (!posterWindow) return;
 
     posterWindow.document.write(`<!doctype html>
@@ -55,7 +57,7 @@ export function QRCodeCard({
     h1 { margin: 0; font-size: 36px; line-height: 1.1; }
     .condo { margin: 0; font-size: 22px; font-weight: 700; }
     .qr { border: 1px solid #e7dccb; border-radius: 18px; background: #fff; padding: 24px; }
-    .qr svg { width: 280px; height: 280px; }
+    .qr img { width: 280px; height: 280px; display: block; }
     .hint { max-width: 520px; margin: 0; font-size: 18px; line-height: 1.5; }
     .url { max-width: 520px; overflow-wrap: anywhere; font-size: 12px; color: #4b5563; }
     .footer { margin-top: 8px; font-size: 13px; color: #4b5563; }
@@ -66,7 +68,7 @@ export function QRCodeCard({
     <div class="brand">Meus Condomínios</div>
     <h1>Visitante, fale com o condomínio pelo QR Code</h1>
     <p class="condo">${condoName ?? title}</p>
-    <div class="qr">${qrMarkup}</div>
+    <div class="qr"><img src="${qrDataUri}" alt="QR Code do condomínio" /></div>
     <p class="hint">Aponte a câmera do celular, informe o apartamento desejado e aguarde o contato autorizado pelo condomínio.</p>
     <p class="url">${value}</p>
     <p class="footer">Seus dados não ficam expostos publicamente. O contato depende das regras do condomínio.</p>

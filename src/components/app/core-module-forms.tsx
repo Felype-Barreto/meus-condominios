@@ -240,41 +240,70 @@ export function CommonAreaForm({ condoId }: { condoId: string }) {
   const [state, action, pending] = useActionState(createCommonAreaAction, initialState);
   return (
     <Card className="p-5">
-      <FormTitle title="Criar area comum" description="Cadastre o espaco, disponibilidade e regras que o morador deve aceitar antes de reservar." />
+      <FormTitle title="Criar área comum" description="Cadastre o espaço, disponibilidade e regras que o morador deve aceitar antes de reservar." />
       <form action={action} className="mt-4 grid gap-4">
         <input type="hidden" name="condominium_id" value={condoId} />
         <div className="grid gap-3 md:grid-cols-[1fr_180px]">
-          <Input name="name" placeholder="Nome. Ex: Salao de festas" />
-          <Input name="capacity" type="number" placeholder="Capacidade maxima" />
+          <label className="space-y-2 text-sm font-medium">
+            Nome da área <span className="text-destructive">*</span>
+            <Input name="name" required placeholder="Ex: Salão de festas" />
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            Capacidade <span className="text-destructive">*</span>
+            <Input name="capacity" type="number" min={1} required placeholder="Ex: 30" />
+          </label>
         </div>
-        <textarea
-          name="description"
-          placeholder="Descricao do espaco"
-          className="min-h-24 rounded-lg border bg-card px-3 py-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
-        />
-        <textarea
-          name="rules"
-          placeholder="Regras que aparecem para o morador antes de confirmar a reserva"
-          className="min-h-28 rounded-lg border bg-card px-3 py-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
-        />
+        <label className="space-y-2 text-sm font-medium">
+          Descrição
+          <textarea
+            name="description"
+            placeholder="Ex: Espaço com churrasqueira, mesas e pia."
+            className="min-h-24 w-full rounded-lg border bg-card px-3 py-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
+          />
+        </label>
+        <label className="space-y-2 text-sm font-medium">
+          Regras para o morador
+          <textarea
+            name="rules"
+            placeholder="Ex: Entregar o espaço limpo, respeitar o horário e não ultrapassar a capacidade."
+            className="min-h-28 w-full rounded-lg border bg-card px-3 py-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
+          />
+        </label>
         <div className="grid gap-3 md:grid-cols-2">
           <label className="space-y-2 text-sm font-medium">
-            Horario inicial
+            Horário inicial <span className="text-destructive">*</span>
             <Input name="available_start_time" type="time" defaultValue="08:00" />
           </label>
           <label className="space-y-2 text-sm font-medium">
-            Horario final
+            Horário final <span className="text-destructive">*</span>
             <Input name="available_end_time" type="time" defaultValue="22:00" />
           </label>
         </div>
         <div className="grid gap-3 md:grid-cols-4">
-          <Input name="min_duration_minutes" type="number" defaultValue={60} placeholder="Min. minutos" />
-          <Input name="max_duration_minutes" type="number" defaultValue={240} placeholder="Max. minutos" />
-          <Input name="min_notice_hours" type="number" defaultValue={24} placeholder="Aviso min. horas" />
-          <Input name="max_bookings_per_apartment_month" type="number" defaultValue={4} placeholder="Limite apto/mes" />
+          <label className="space-y-2 text-sm font-medium">
+            Duração mínima
+            <Input name="min_duration_minutes" type="number" min={30} step={30} defaultValue={60} />
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            Duração máxima
+            <Input name="max_duration_minutes" type="number" min={30} step={30} defaultValue={240} />
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            Antecedência mínima
+            <Input name="min_notice_hours" type="number" min={0} defaultValue={24} />
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            Limite mensal por apto.
+            <Input name="max_bookings_per_apartment_month" type="number" min={1} defaultValue={4} />
+          </label>
         </div>
-        <Input name="max_notice_days" type="number" defaultValue={60} placeholder="Antecedencia maxima em dias" />
-        <div className="grid gap-2 sm:grid-cols-4">
+        <label className="space-y-2 text-sm font-medium">
+          Antecedência máxima em dias
+          <Input name="max_notice_days" type="number" min={1} defaultValue={60} />
+        </label>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Dias disponíveis</p>
+          <div className="grid gap-2 sm:grid-cols-4">
           {[
             ["0", "Dom"],
             ["1", "Seg"],
@@ -289,10 +318,11 @@ export function CommonAreaForm({ condoId }: { condoId: string }) {
               {label}
             </label>
           ))}
+          </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-center gap-2 text-sm"><input name="requires_approval" type="checkbox" className="accent-[#7C5C3E]" /> Exige aprovacao da administracao</label>
-          <SubmitButton pending={pending}>Criar area</SubmitButton>
+          <label className="flex items-center gap-2 text-sm"><input name="requires_approval" type="checkbox" className="accent-[#7C5C3E]" /> Exige aprovação da administração</label>
+          <SubmitButton pending={pending}>Criar área</SubmitButton>
         </div>
       </form>
       <Message state={state} />
