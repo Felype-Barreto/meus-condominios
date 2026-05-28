@@ -81,9 +81,9 @@ export default async function TicketsPage({ params }: { params: Promise<{ condoI
     <div className="space-y-6">
       <div>
         <p className="text-sm font-semibold text-primary">Atendimento</p>
-        <h1 className="mt-2 text-3xl font-semibold">Solicitações</h1>
+        <h1 className="mt-2 text-3xl font-semibold">Solicitação/Reclamação</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Solicitação é pedido de atendimento: morador abre reclamação, manutenção ou sugestão; administração acompanha e muda o status.
+          Registre pedidos, reclamações, manutenção ou sugestões em um só lugar. A administração acompanha, responde e atualiza o status.
         </p>
       </div>
       <TicketForm condoId={condoId} apartments={(apartments ?? []) as never} />

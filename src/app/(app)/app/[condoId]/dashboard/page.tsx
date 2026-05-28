@@ -16,6 +16,7 @@ import { RoleBadge } from "@/components/common/role-badge";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { permissionsByCondoItem } from "@/lib/app-navigation";
 import { getCondominiumAccess } from "@/lib/condominium-access";
 import { getCurrentUsage } from "@/lib/plans";
 import { getPublicAppUrl } from "@/lib/public-url";
@@ -150,6 +151,28 @@ export default async function DashboardPage({
   const upcoming = (upcomingBookings ?? []) as unknown as UpcomingBooking[];
   const role = access.role;
   const canManage = access.isAdmin || access.isSyndic;
+  const allowedDashboardItems = access.isAdmin
+    ? new Set(Object.keys(permissionsByCondoItem))
+    : new Set(
+        (
+          await Promise.all(
+            Object.entries(permissionsByCondoItem).map(async ([href, permissions]) => {
+              const checks = await Promise.all(
+                permissions.map((permission) =>
+                  supabase.rpc("has_permission", {
+                    condo_id: condoId,
+                    permission_key: permission,
+                  }),
+                ),
+              );
+
+              return [href, checks.some((check) => check.data === true)] as const;
+            }),
+          )
+        )
+          .filter(([, allowed]) => allowed)
+          .map(([href]) => href),
+      );
   const onboardingCompleted = {
     apartments: usage.apartments > 0,
     syndic: Boolean(syndic),
@@ -162,6 +185,37 @@ export default async function DashboardPage({
   };
 
   if (access.isResident) {
+    const residentShortcuts = [
+      {
+        href: "comunicados",
+        title: "Avisos",
+        value: String(unreadAnnouncements),
+        detail: "Comunicados liberados para leitura",
+        icon: MessageCircle,
+      },
+      {
+        href: "agendamentos",
+        title: "Próximas reservas",
+        value: String(upcoming.length),
+        detail: "Agenda do condomínio",
+        icon: CalendarDays,
+      },
+      {
+        href: "solicitacoes",
+        title: "Solicitação/Reclamação",
+        value: "Abrir",
+        detail: "Pedidos, reclamações e sugestões para a administração",
+        icon: Users,
+      },
+      {
+        href: "encomendas",
+        title: "Encomendas",
+        value: "Ver",
+        detail: "Itens registrados para sua unidade",
+        icon: Building2,
+      },
+    ].filter((item) => allowedDashboardItems.has(item.href));
+
     return (
       <div className="space-y-6">
         <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr] lg:items-start">
@@ -183,12 +237,20 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <DashboardCard title="Avisos" value={String(unreadAnnouncements)} detail="Comunicados para leitura" icon={MessageCircle} />
-          <DashboardCard title="Próximas reservas" value={String(upcoming.length)} detail="Agenda do condomínio" icon={CalendarDays} />
-          <DashboardCard title="Solicitações" value="Abrir" detail="Reclamações e sugestões" icon={Users} />
-          <DashboardCard title="Encomendas" value="Ver" detail="Itens registrados para sua unidade" icon={Building2} />
-        </div>
+        {residentShortcuts.length ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {residentShortcuts.map((item) => (
+              <DashboardCard
+                key={item.href}
+                title={item.title}
+                value={item.value}
+                detail={item.detail}
+                icon={item.icon}
+                href={`/app/${condoId}/${item.href}`}
+              />
+            ))}
+          </div>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
           <Card className="p-6">
@@ -220,17 +282,15 @@ export default async function DashboardPage({
           />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Button asChild variant="outline">
-            <Link href={`/app/${condoId}/comunicados`}>Ler avisos</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/app/${condoId}/agendamentos`}>Solicitar agendamento</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/app/${condoId}/solicitacoes`}>Enviar solicitação</Link>
-          </Button>
-        </div>
+        {residentShortcuts.length ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {residentShortcuts.map((item) => (
+              <Button key={item.href} asChild variant="outline">
+                <Link href={`/app/${condoId}/${item.href}`}>{item.title}</Link>
+              </Button>
+            ))}
+          </div>
+        ) : null}
       </div>
     );
   }
