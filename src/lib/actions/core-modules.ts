@@ -569,6 +569,21 @@ export async function createIncidentAction(
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message };
   try {
     const { supabase, userId } = await currentUserId();
+    const membership = await getActiveMembershipRole(supabase, parsed.data.condominium_id, userId);
+    if (!membership) throw new Error("Sem acesso ativo a este condomínio.");
+    const canCreateGateIncident =
+      membership.role === "doorman" &&
+      Boolean(
+        await supabase
+          .rpc("has_permission", { condo_id: parsed.data.condominium_id, permission_key: "gate.create_incident" })
+          .then((result) => result.data),
+      );
+    if (membership.role === "resident" || membership.role === "owner") {
+      throw new Error("Morador deve abrir solicitações. Ocorrências são registros internos da administração.");
+    }
+    if (!canCreateGateIncident) {
+      await assertPermission(supabase, parsed.data.condominium_id, userId, "incidents.create");
+    }
     await assertCostAllowed(parsed.data.condominium_id, userId, "incidents.create");
     const attachments = parsed.data.attachments ? parsed.data.attachments.split(",").map((url) => url.trim()).filter(Boolean) : [];
     const { data, error } = await supabase.from("incidents").insert({
@@ -589,4 +604,70 @@ export async function createIncidentAction(
   } catch (error) {
     return { status: "error", message: errorMessage(error) };
   }
+}
+
+export async function updateTicketStatusAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id"));
+  const id = String(formData.get("ticket_id"));
+  const status = String(formData.get("status"));
+  if (!["open", "in_progress", "resolved", "closed"].includes(status)) {
+    throw new Error("Status inválido.");
+  }
+  const { supabase, userId } = await currentUserId();
+  await assertPermission(supabase, condoId, userId, "tickets.change_status");
+  const { error } = await supabase
+    .from("tickets")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("condominium_id", condoId);
+  if (error) throw error;
+  await audit(condoId, "update_ticket_status", "tickets", id);
+  revalidatePath(`/app/${condoId}/solicitacoes`);
+}
+
+export async function deleteTicketAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id"));
+  const id = String(formData.get("ticket_id"));
+  const { supabase, userId } = await currentUserId();
+  const membership = await assertPermission(supabase, condoId, userId, "tickets.change_status");
+  if (membership.role === "resident" || membership.role === "owner" || membership.role === "doorman") {
+    throw new Error("Sem permissão para excluir solicitação.");
+  }
+  const { error } = await supabase.from("tickets").delete().eq("id", id).eq("condominium_id", condoId);
+  if (error) throw error;
+  await audit(condoId, "delete_ticket", "tickets", id);
+  revalidatePath(`/app/${condoId}/solicitacoes`);
+}
+
+export async function updateIncidentStatusAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id"));
+  const id = String(formData.get("incident_id"));
+  const status = String(formData.get("status"));
+  if (!["open", "reviewing", "resolved", "archived"].includes(status)) {
+    throw new Error("Status inválido.");
+  }
+  const { supabase, userId } = await currentUserId();
+  await assertPermission(supabase, condoId, userId, "incidents.review");
+  const { error } = await supabase
+    .from("incidents")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("condominium_id", condoId);
+  if (error) throw error;
+  await audit(condoId, "update_incident_status", "incidents", id);
+  revalidatePath(`/app/${condoId}/ocorrencias`);
+}
+
+export async function deleteIncidentAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id"));
+  const id = String(formData.get("incident_id"));
+  const { supabase, userId } = await currentUserId();
+  const membership = await assertPermission(supabase, condoId, userId, "incidents.review");
+  if (membership.role === "resident" || membership.role === "owner" || membership.role === "doorman") {
+    throw new Error("Sem permissão para excluir ocorrência.");
+  }
+  const { error } = await supabase.from("incidents").delete().eq("id", id).eq("condominium_id", condoId);
+  if (error) throw error;
+  await audit(condoId, "delete_incident", "incidents", id);
+  revalidatePath(`/app/${condoId}/ocorrencias`);
 }

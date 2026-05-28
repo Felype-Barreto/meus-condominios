@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { AttachmentUploadField } from "@/components/app/attachment-upload-field";
 import { PackagePhotoUploadField } from "@/components/app/package-photo-upload-field";
 import { announcementTemplates } from "@/lib/product-content";
 import {
@@ -364,21 +365,21 @@ export function TicketForm({ condoId, apartments }: { condoId: string; apartment
   const [state, action, pending] = useActionState(createTicketAction, initialState);
   return (
     <Card className="p-5">
-      <FormTitle title="Nova solicitacao" description="Registre uma reclamacao, manutencao ou sugestao com unidade envolvida, prioridade e anexos." />
+      <FormTitle title="Nova solicitação" description="Use para pedidos de morador: reclamação, manutenção, sugestão ou acompanhamento da administração." />
       <form action={action} className="mt-4 grid gap-4">
         <input type="hidden" name="condominium_id" value={condoId} />
         <div className="grid gap-3 md:grid-cols-2">
           <select name="category" className="h-11 rounded-lg border bg-card px-3 text-sm">
-            <option value="reclamacao">Reclamacao</option>
-            <option value="manutencao">Manutencao</option>
-            <option value="sugestao">Sugestao</option>
+            <option value="reclamacao">Reclamação</option>
+            <option value="manutencao">Manutenção</option>
+            <option value="sugestao">Sugestão</option>
             <option value="barulho">Barulho</option>
             <option value="seguranca">Seguranca</option>
             <option value="limpeza">Limpeza</option>
             <option value="outros">Outros</option>
           </select>
           <SelectApartment apartments={apartments} />
-          <Input name="title" placeholder="Titulo" />
+          <Input name="title" placeholder="Título" />
           <select name="priority" className="h-11 rounded-lg border bg-card px-3 text-sm">
             <option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option>
           </select>
@@ -388,8 +389,8 @@ export function TicketForm({ condoId, apartments }: { condoId: string; apartment
           placeholder="Descreva o que aconteceu, quando aconteceu e o que precisa ser feito."
           className="min-h-32 rounded-lg border bg-card px-3 py-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
         />
-        <Input name="attachments" placeholder="Anexos opcionais: URLs separadas por virgula" />
-        <SubmitButton pending={pending}>Criar solicitacao</SubmitButton>
+        <AttachmentUploadField condoId={condoId} folder="tickets" label="Anexos da solicitação" />
+        <SubmitButton pending={pending}>Criar solicitação</SubmitButton>
       </form>
       <Message state={state} />
     </Card>
@@ -424,24 +425,24 @@ export function IncidentForm({ condoId, apartments }: { condoId: string; apartme
   const [state, action, pending] = useActionState(createIncidentAction, initialState);
   return (
     <Card className="p-5">
-      <FormTitle title="Nova ocorrencia" description="Registre fatos importantes para manter historico interno da administracao." />
+      <FormTitle title="Nova ocorrência" description="Registro interno para administração, síndico ou guarita: segurança, dano, acesso indevido ou fato relevante." />
       <form action={action} className="mt-4 grid gap-4">
         <input type="hidden" name="condominium_id" value={condoId} />
         <div className="grid gap-3 md:grid-cols-2">
-          <Input name="type" placeholder="Tipo. Ex: seguranca, dano, barulho" />
+          <Input name="type" placeholder="Tipo. Ex: segurança, dano, barulho" />
           <SelectApartment apartments={apartments} />
-          <Input name="title" placeholder="Titulo" />
+          <Input name="title" placeholder="Título" />
           <select name="severity" className="h-11 rounded-lg border bg-card px-3 text-sm">
-            <option value="normal">Normal</option><option value="high">Alta</option><option value="critical">Critica</option>
+            <option value="normal">Normal</option><option value="high">Alta</option><option value="critical">Crítica</option>
           </select>
         </div>
         <textarea
           name="description"
-          placeholder="Descreva a ocorrencia com data, local, envolvidos e providencias tomadas."
+          placeholder="Descreva a ocorrência com data, local, envolvidos e providências tomadas."
           className="min-h-32 rounded-lg border bg-card px-3 py-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring/25"
         />
-        <Input name="attachments" placeholder="Anexos opcionais: URLs separadas por virgula" />
-        <SubmitButton pending={pending}>Registrar ocorrencia</SubmitButton>
+        <AttachmentUploadField condoId={condoId} folder="incidents" label="Anexos da ocorrência" />
+        <SubmitButton pending={pending}>Registrar ocorrência</SubmitButton>
       </form>
       <Message state={state} />
     </Card>
