@@ -4,11 +4,11 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { createSeoMetadata, pricingOfferCatalogJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = createSeoMetadata({
-  title: "Preços do Meus Condomínios para condomínios",
+  title: "Preços do Meus Condomínios para condomínios e kitnets",
   description:
-    "Planos do Meus Condomínios para condomínios: grátis, premium, pro e total, com limites claros para moradores, áreas comuns, portaria e WhatsApp.",
+    "Planos do Meus Condomínios para condomínios, kitnets e prédios pequenos: grátis, premium, pro e total, com limites claros para unidades, portaria e avisos.",
   path: "/precos",
-  keywords: ["preço sistema para condomínio", "app para condomínio", "gestão de condomínio online"],
+  keywords: ["preço sistema para condomínio", "sistema para kitnet", "app para condomínio", "gestão de condomínio online"],
 });
 
 export default function PricingPage() {
@@ -18,10 +18,10 @@ export default function PricingPage() {
       <JsonLd data={pricingOfferCatalogJsonLd()} />
       <p className="text-sm font-semibold text-primary">Preços</p>
       <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-normal md:text-5xl">
-        Planos claros para condomínios em crescimento.
+        Planos claros para condomínios, kitnets e prédios pequenos.
       </h1>
       <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-        Comece grátis e evolua quando atingir limites de operação, portaria,
+        Comece grátis em uma operação pequena e evolua quando atingir limites de unidades, portaria,
         relatórios, WhatsApp ou armazenamento.
       </p>
       <div className="mt-10">

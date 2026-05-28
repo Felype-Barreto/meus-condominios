@@ -11,6 +11,13 @@ type PublicQrConfig = {
   message?: string;
 };
 
+type PublicQrApartmentOption = {
+  block_name: string | null;
+  apartment_number: string;
+  search_value: string;
+  label: string;
+};
+
 export default async function VisitorPage({
   params,
 }: {
@@ -23,6 +30,12 @@ export default async function VisitorPage({
   });
   const config = (data ?? {}) as PublicQrConfig;
   const available = config.found === true && config.enabled === true;
+  const { data: apartmentOptionsData } = available
+    ? await supabase.rpc("get_public_qr_apartments", {
+        qr_public_code: publicCode,
+      })
+    : { data: [] };
+  const apartmentOptions = (apartmentOptionsData ?? []) as PublicQrApartmentOption[];
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:py-16">
@@ -46,7 +59,7 @@ export default async function VisitorPage({
             </h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {available
-                ? "Com quem você deseja falar?"
+                ? "Selecione a unidade ou chame a guarita/responsável."
                 : "Este canal de contato não está disponível no momento."}
             </p>
             {available && config.message ? (
@@ -57,7 +70,10 @@ export default async function VisitorPage({
           </Card>
 
           {available ? (
-            <PublicQrContactForm publicCode={publicCode} />
+            <PublicQrContactForm
+              publicCode={publicCode}
+              apartmentOptions={apartmentOptions}
+            />
           ) : (
             <Card className="p-5 text-sm text-muted-foreground">
               O condomínio pode ter desativado temporariamente o QR público.
@@ -65,9 +81,8 @@ export default async function VisitorPage({
           )}
 
           <p className="px-2 text-center text-xs leading-5 text-muted-foreground">
-            Por segurança, o Meus Condomínios não exibe moradores, apartamentos ou telefones
-            nesta página. Se o responsável autorizar, você receberá um link de
-            contato.
+            Por segurança, o Meus Condomínios não exibe moradores ou telefones
+            nesta página. Se o responsável autorizar, você receberá um link de contato.
           </p>
         </div>
 

@@ -27,13 +27,15 @@ import {
 } from "@/lib/seo";
 
 export const metadata: Metadata = createSeoMetadata({
-  title: "Meus Condomínios | Sistema para condomínio com comunicados, reservas e WhatsApp",
+  title: "Meus Condomínios | Sistema para condomínio e kitnet com avisos, reservas e portaria",
   description:
-    "O Meus Condomínios organiza comunicados, reservas, encomendas, solicitações e WhatsApp do condomínio em um só lugar, com segurança para síndicos, moradores e administradoras.",
+    "O Meus Condomínios organiza comunicados, reservas, encomendas, solicitações e portaria para condomínios, kitnets e prédios pequenos em um só lugar.",
   path: "/",
   keywords: [
     "sistema para condomínio",
     "app para condomínio",
+    "sistema para kitnet",
+    "gestão de kitnets",
     "gestão de condomínio online",
     "sistema para síndico",
     "WhatsApp para condomínio",
@@ -73,7 +75,7 @@ const solutions: Array<{ title: string; description: string; icon: LucideIcon }>
   },
   {
     title: "QR Code seguro",
-    description: "Visitantes solicitam contato sem listar moradores, telefones ou apartamentos.",
+    description: "Visitantes solicitam contato com a unidade sem expor moradores ou telefones.",
     icon: QrCode,
   },
   {
@@ -133,7 +135,7 @@ const pricingPlans = [
   {
     name: "Grátis",
     price: "R$ 0",
-    description: "Comece com 2 blocos, até 24 apartamentos e compartilhamento manual no WhatsApp.",
+    description: "Comece com até 24 unidades, ideal para prédios pequenos, kitnets e condomínios menores.",
     href: "/cadastro?next=%2Fapp%2Fnovo-condominio",
     action: "Começar grátis",
     available: true,
@@ -282,19 +284,19 @@ export default function HomePage() {
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_0.86fr] lg:px-8">
         <div className="flex flex-col justify-center">
           <p className="text-sm font-semibold text-primary">
-            Sistema para condomínio feito para a rotina brasileira
+            Sistema para condomínio, kitnet e prédio pequeno
           </p>
           <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-normal text-foreground md:text-6xl">
-            Organize a comunicação do seu condomínio sem depender só do grupo de WhatsApp
+            Organize moradores, avisos e portaria sem depender só do grupo de WhatsApp
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Com o Meus Condomínios, síndicos e moradores centralizam avisos, reservas, encomendas,
-            solicitações e canais de WhatsApp com mais organização e cuidados de privacidade.
+            Com o Meus Condomínios, síndicos, administradores de kitnets e moradores centralizam avisos,
+            reservas, encomendas, solicitações e rotina da portaria com mais organização e cuidado com dados.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
               <Link href="/cadastro">
-                Criar condomínio grátis <ArrowRight className="h-4 w-4" />
+                Começar grátis <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
@@ -317,7 +319,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <div className="max-w-3xl">
             <h2 className="text-3xl font-semibold tracking-normal">
-              Seu condomínio vive no WhatsApp, mas nada fica organizado?
+              Seu condomínio ou kitnet vive no WhatsApp, mas nada fica organizado?
             </h2>
             <p className="mt-4 text-sm leading-7 text-muted-foreground">
               O grupo ajuda na conversa rápida. Mas quando tudo depende dele, a rotina vira busca,
@@ -339,7 +341,7 @@ export default function HomePage() {
         <div className="max-w-3xl">
           <h2 className="text-3xl font-semibold tracking-normal">Tudo em um painel simples</h2>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            O Meus Condomínios reúne os módulos que o condomínio usa todos os dias, sem tela poluída e sem
+            O Meus Condomínios reúne os módulos que uma operação residencial usa todos os dias, sem tela poluída e sem
             pedir dados desnecessários.
           </p>
         </div>
@@ -351,6 +353,37 @@ export default function HomePage() {
               <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="border-y bg-card">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+          <div>
+            <p className="text-sm font-semibold text-primary">Também para kitnets</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-normal">
+              Controle simples para quartos, studios e pequenas unidades
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-muted-foreground">
+              Se você administra kitnets, quartos ou um prédio pequeno, pode usar o Meus Condomínios
+              para organizar moradores, avisos, encomendas, solicitações, visitas e reservas sem depender de planilha ou conversa perdida.
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/cadastro">Testar em uma kitnet</Link>
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              "Cadastro por unidade, quarto ou studio",
+              "Avisos para todos sem expor contatos",
+              "Encomendas e visitantes registrados pela portaria",
+              "Plano grátis suficiente para operações pequenas",
+            ].map((item) => (
+              <Card key={item} className="p-5">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+                <p className="mt-3 text-sm font-semibold leading-6">{item}</p>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 

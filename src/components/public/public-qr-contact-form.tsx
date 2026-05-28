@@ -13,7 +13,20 @@ import { Input } from "@/components/ui/input";
 
 const initialState: PublicQrRequestState = { status: "idle" };
 
-export function PublicQrContactForm({ publicCode }: { publicCode: string }) {
+type PublicQrApartmentOption = {
+  block_name: string | null;
+  apartment_number: string;
+  search_value: string;
+  label: string;
+};
+
+export function PublicQrContactForm({
+  publicCode,
+  apartmentOptions,
+}: {
+  publicCode: string;
+  apartmentOptions: PublicQrApartmentOption[];
+}) {
   const [state, action, pending] = useActionState(
     submitPublicQrRequestAction,
     initialState,
@@ -25,17 +38,23 @@ export function PublicQrContactForm({ publicCode }: { publicCode: string }) {
         <input name="public_code" type="hidden" value={publicCode} />
         <div>
           <label className="text-sm font-semibold" htmlFor="search">
-            Qual apartamento deseja chamar?
+            Selecione bloco e apartamento
           </label>
-          <Input
+          <select
             id="search"
             name="search"
-            autoComplete="off"
-            placeholder="Ex: Bloco A 103 ou A 103"
-            className="mt-2"
-          />
+            defaultValue=""
+            className="mt-2 h-11 w-full rounded-lg border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Escolha uma unidade</option>
+            {apartmentOptions.map((apartment) => (
+              <option key={apartment.search_value} value={apartment.search_value}>
+                {apartment.label}
+              </option>
+            ))}
+          </select>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Informe bloco e apartamento. O site não mostra nome ou telefone do morador.
+            Mostramos apenas unidades disponíveis para contato. O site não mostra nome ou telefone do morador.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -101,7 +120,7 @@ export function PublicQrContactForm({ publicCode }: { publicCode: string }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <Button className="w-full" disabled={pending} name="contact_target" value="apartment">
             <Send className="h-4 w-4" />
-            {pending ? "Aguarde..." : "Chamar apartamento"}
+            {pending ? "Aguarde..." : "Chamar unidade"}
           </Button>
           <Button
             className="w-full"
