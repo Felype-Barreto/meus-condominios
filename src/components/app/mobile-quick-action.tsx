@@ -3,6 +3,8 @@
 import { CalendarPlus, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -10,21 +12,59 @@ const uuidPattern =
 export function MobileQuickAction() {
   const pathname = usePathname();
   const condoId = pathname.match(/^\/app\/([^/]+)/)?.[1];
+  const [canCreateBooking, setCanCreateBooking] = useState(false);
+  const [canCreateTicket, setCanCreateTicket] = useState(false);
+
+  useEffect(() => {
+    if (!condoId || !uuidPattern.test(condoId)) return;
+
+    const supabase = createSupabaseBrowserClient();
+    let cancelled = false;
+
+    supabase.auth.getUser().then(({ data: auth }) => {
+      if (!auth.user) return;
+
+      Promise.all([
+        supabase.rpc("has_permission", {
+          condo_id: condoId,
+          permission_key: "bookings.create",
+        }),
+        supabase.rpc("has_permission", {
+          condo_id: condoId,
+          permission_key: "tickets.create",
+        }),
+      ]).then(([booking, ticket]) => {
+        if (cancelled) return;
+        setCanCreateBooking(booking.data === true);
+        setCanCreateTicket(ticket.data === true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [condoId]);
 
   if (!condoId || !uuidPattern.test(condoId)) return null;
   if (pathname.includes("/guarita")) return null;
 
   const action = pathname.includes("/agendamentos")
-    ? {
-        href: `/app/${condoId}/agendamentos`,
-        label: "Nova reserva",
-        icon: CalendarPlus,
-      }
-    : {
-        href: `/app/${condoId}/solicitacoes`,
-        label: "Nova solicitação",
-        icon: Plus,
-      };
+    ? canCreateBooking
+      ? {
+          href: `/app/${condoId}/agendamentos`,
+          label: "Nova reserva",
+          icon: CalendarPlus,
+        }
+      : null
+    : canCreateTicket
+      ? {
+          href: `/app/${condoId}/solicitacoes`,
+          label: "Nova solicitação",
+          icon: Plus,
+        }
+      : null;
+
+  if (!action) return null;
 
   return (
     <Link

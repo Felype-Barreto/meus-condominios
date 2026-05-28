@@ -4,36 +4,16 @@ import { Building2, CreditCard, Settings, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { sidebarItems } from "@/lib/app-data";
+import {
+  filterCondoNavigationItems,
+  permissionsByCondoItem,
+} from "@/lib/app-navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const residentItems = new Set([
-  "dashboard",
-  "comunicados",
-  "agendamentos",
-  "areas-comuns",
-  "solicitacoes",
-  "encomendas",
-]);
-const doormanItems = new Set(["dashboard", "guarita", "historico", "encomendas", "ocorrencias", "suporte"]);
-const staffItems = new Set(sidebarItems.map((item) => item.href));
-const permissionByItem: Record<string, string> = {
-  apartamentos: "apartments.view_grid",
-  moradores: "residents.view",
-  sindico: "settings.view",
-  guarita: "gate.view_panel",
-  comunicados: "announcements.view",
-  agendamentos: "bookings.view_all",
-  "areas-comuns": "bookings.create",
-  solicitacoes: "tickets.view_all",
-  encomendas: "packages.view_all",
-  ocorrencias: "incidents.create",
-  permissoes: "settings.roles",
-  historico: "gate.view_panel",
-};
+const rolePriority = ["subscriber_admin", "admin", "syndic", "doorman", "owner", "resident"];
 
 function useActiveCondoId(fallback: string) {
   const pathname = usePathname();
@@ -124,19 +104,23 @@ export function SidebarContent({
         .eq("condominium_id", condoId)
         .eq("user_id", auth.user.id)
         .eq("status", "active")
-        .limit(1)
-        .maybeSingle()
         .then(({ data }) => {
-          if (!cancelled) setRole(data?.role ?? null);
+          if (cancelled) return;
+          const roles = new Set((data ?? []).map((membership) => membership.role));
+          setRole(rolePriority.find((candidate) => roles.has(candidate)) ?? null);
         });
 
       Promise.all(
-        Object.entries(permissionByItem).map(async ([href, permission]) => {
-          const { data } = await supabase.rpc("has_permission", {
-            condo_id: condoId,
-            permission_key: permission,
-          });
-          return [href, data === true] as const;
+        Object.entries(permissionsByCondoItem).map(async ([href, permissions]) => {
+          const checks = await Promise.all(
+            permissions.map((permission) =>
+              supabase.rpc("has_permission", {
+                condo_id: condoId,
+                permission_key: permission,
+              }),
+            ),
+          );
+          return [href, checks.some((result) => result.data === true)] as const;
         }),
       ).then((results) => {
         if (cancelled) return;
@@ -149,24 +133,15 @@ export function SidebarContent({
     };
   }, [condoId, hasCondo]);
 
-  const accountLinksVisible = role === "subscriber_admin" || role === "admin";
+  const admin = role === "subscriber_admin" || role === "admin";
+  const accountLinksVisible = admin;
 
   const visibleItems = useMemo(() => {
-    const allowed =
-      role === null
-        ? new Set<string>()
-        : role === "resident" || role === "owner"
-          ? residentItems
-          : role === "doorman"
-            ? doormanItems
-            : staffItems;
-
-    const merged =
-      role === "resident" || role === "owner"
-        ? allowed
-        : new Set([...allowed, ...permissionItems]);
-    return sidebarItems.filter((item) => merged.has(item.href));
-  }, [permissionItems, role]);
+    return filterCondoNavigationItems({
+      admin,
+      allowedItems: permissionItems,
+    });
+  }, [admin, permissionItems]);
 
   return (
     <>

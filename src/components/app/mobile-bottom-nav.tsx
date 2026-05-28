@@ -1,79 +1,28 @@
 "use client";
 
-import {
-  Bell,
-  Building2,
-  CalendarDays,
-  ClipboardList,
-  History,
-  Home,
-  KeyRound,
-  Megaphone,
-  MoreHorizontal,
-  Package,
-  Search,
-  UsersRound,
-} from "lucide-react";
+import { Home } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import {
+  filterCondoNavigationItems,
+  mobileLabelByItem,
+  permissionsByCondoItem,
+  sortMobileItems,
+  type AppNavItem,
+} from "@/lib/app-navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-type MobileRole = "admin" | "syndic" | "doorman" | "resident" | "owner";
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const roleGroups: Record<MobileRole, Array<{ href: string; label: string; icon: typeof Home }>> = {
-  resident: [
-    { href: "dashboard", label: "Painel", icon: Home },
-    { href: "comunicados", label: "Avisos", icon: Megaphone },
-    { href: "agendamentos", label: "Agenda", icon: CalendarDays },
-    { href: "solicitacoes", label: "Solicitar", icon: ClipboardList },
-    { href: "perfil/notificacoes", label: "Alertas", icon: Bell },
-  ],
-  owner: [
-    { href: "dashboard", label: "Painel", icon: Home },
-    { href: "comunicados", label: "Avisos", icon: Megaphone },
-    { href: "agendamentos", label: "Agenda", icon: CalendarDays },
-    { href: "solicitacoes", label: "Solicitar", icon: ClipboardList },
-    { href: "perfil/notificacoes", label: "Alertas", icon: Bell },
-  ],
-  admin: [
-    { href: "dashboard", label: "Painel", icon: Home },
-    { href: "apartamentos", label: "Aptos", icon: Building2 },
-    { href: "moradores", label: "Pessoas", icon: UsersRound },
-    { href: "comunicados", label: "Avisos", icon: Megaphone },
-    { href: "configuracoes", label: "Mais", icon: MoreHorizontal },
-  ],
-  syndic: [
-    { href: "dashboard", label: "Painel", icon: Home },
-    { href: "apartamentos", label: "Aptos", icon: Building2 },
-    { href: "moradores", label: "Pessoas", icon: UsersRound },
-    { href: "comunicados", label: "Avisos", icon: Megaphone },
-    { href: "configuracoes", label: "Mais", icon: MoreHorizontal },
-  ],
-  doorman: [
-    { href: "dashboard", label: "Painel", icon: Home },
-    { href: "guarita", label: "Buscar", icon: Search },
-    { href: "encomendas", label: "Pacotes", icon: Package },
-    { href: "historico", label: "Histórico", icon: History },
-    { href: "ocorrencias", label: "Ocorr.", icon: KeyRound },
-  ],
-};
-
-function normalizeRole(role?: string | null): MobileRole {
-  if (role === "resident" || role === "owner" || role === "doorman" || role === "syndic") {
-    return role;
-  }
-  if (role === "admin" || role === "subscriber_admin") return "admin";
-  return "resident";
-}
+const rolePriority = ["subscriber_admin", "admin", "syndic", "doorman", "owner", "resident"];
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const condoId = pathname.match(/^\/app\/([^/]+)/)?.[1];
-  const [role, setRole] = useState<MobileRole>("resident");
+  const [role, setRole] = useState<string | null>(null);
+  const [permissionItems, setPermissionItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!condoId || !uuidPattern.test(condoId)) return;
@@ -90,11 +39,29 @@ export function MobileBottomNav() {
         .eq("condominium_id", condoId)
         .eq("user_id", auth.user.id)
         .eq("status", "active")
-        .limit(1)
-        .maybeSingle()
         .then(({ data }) => {
-          if (!cancelled) setRole(normalizeRole(data?.role));
+          if (cancelled) return;
+          const roles = new Set((data ?? []).map((membership) => membership.role));
+          setRole(rolePriority.find((candidate) => roles.has(candidate)) ?? null);
         });
+
+      Promise.all(
+        Object.entries(permissionsByCondoItem).map(async ([href, permissions]) => {
+          const checks = await Promise.all(
+            permissions.map((permission) =>
+              supabase.rpc("has_permission", {
+                condo_id: condoId,
+                permission_key: permission,
+              }),
+            ),
+          );
+
+          return [href, checks.some((result) => result.data === true)] as const;
+        }),
+      ).then((results) => {
+        if (cancelled) return;
+        setPermissionItems(new Set(results.filter(([, allowed]) => allowed).map(([href]) => href)));
+      });
     });
 
     return () => {
@@ -102,7 +69,14 @@ export function MobileBottomNav() {
     };
   }, [condoId]);
 
-  const items = useMemo(() => roleGroups[role], [role]);
+  const items = useMemo(() => {
+    return sortMobileItems(
+      filterCondoNavigationItems({
+        admin: role === "subscriber_admin" || role === "admin",
+        allowedItems: permissionItems,
+      }),
+    );
+  }, [permissionItems, role]);
 
   if (!condoId || !uuidPattern.test(condoId)) return null;
 
@@ -112,6 +86,7 @@ export function MobileBottomNav() {
         {items.map((item) => {
           const href = `/app/${condoId}/${item.href}`;
           const active = pathname.startsWith(href);
+          const Icon = item.icon as AppNavItem["icon"] | typeof Home;
 
           return (
             <Link
@@ -122,8 +97,8 @@ export function MobileBottomNav() {
                 active && "bg-muted text-primary",
               )}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="max-w-full truncate">{item.label}</span>
+              <Icon className="h-5 w-5" />
+              <span className="max-w-full truncate">{mobileLabelByItem[item.href] ?? item.label}</span>
             </Link>
           );
         })}
