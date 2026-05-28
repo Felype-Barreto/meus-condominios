@@ -95,11 +95,12 @@ export async function inviteDoormanAction(
           return { status: "error", message: "Este e-mail já possui acesso de guarita neste condomínio." };
         }
 
-        const { error: limitError, data: limitAllowed } = await supabase.rpc("can_invite_doorman", {
+        const { error: limitError, data: limitResult } = await supabase.rpc("can_invite_doorman", {
           condo_id: parsed.data.condominium_id,
         });
         if (limitError) return { status: "error", message: safeActionErrorMessage(limitError) };
-        if (!limitAllowed) {
+        const canInviteExisting = (limitResult as { allowed?: boolean } | null)?.allowed === true;
+        if (!canInviteExisting) {
           return { status: "error", message: "Limite de operadores de guarita atingido no plano atual." };
         }
 
