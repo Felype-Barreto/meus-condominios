@@ -73,6 +73,7 @@ export async function submitPublicQrRequestAction(
     matched?: boolean;
     request_id?: string;
     target?: string;
+    expires_at?: string;
   } | null;
 
   if (result?.status === "rate_limited") {
@@ -96,8 +97,8 @@ export async function submitPublicQrRequestAction(
     message:
       result?.matched === true
         ? result?.target === "staff"
-          ? "Solicitação enviada para a guarita/responsável. Aguarde alguns instantes."
-          : "Solicitação enviada. O responsável do apartamento será avisado."
+          ? "Solicitação enviada para a guarita/responsável. Ela expira em 10 minutos."
+          : "Solicitação enviada. O responsável da unidade tem até 10 minutos para responder."
         : "Não foi possível concluir a solicitação. Verifique os dados ou fale com a portaria.",
   };
 }

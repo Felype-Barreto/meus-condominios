@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function markAllNotificationsReadAction() {
@@ -32,17 +33,25 @@ export async function answerVisitorContactRequestAction(formData: FormData) {
 
   if (!user) throw new Error("Entre na sua conta.");
 
+  if (!requestId) {
+    redirect("/app/notificacoes?visitor_status=error&visitor_message=Solicitacao%20invalida.");
+  }
+
   const { data, error } = await supabase.rpc("release_visitor_contact", {
     request_id: requestId,
     approve,
   });
 
-  if (error) throw new Error("Não foi possível responder a solicitação.");
-
-  const result = data as { ok?: boolean; message?: string } | null;
-  if (result?.ok === false) {
-    throw new Error(result.message ?? "Não foi possível responder a solicitação.");
+  if (error) {
+    redirect("/app/notificacoes?visitor_status=error&visitor_message=Nao%20foi%20possivel%20responder%20a%20solicitacao.");
   }
 
+  const result = data as { ok?: boolean; message?: string } | null;
+  const status = result?.ok === false ? "error" : "success";
+  const message = encodeURIComponent(
+    result?.message ?? (approve ? "Contato liberado." : "Solicitacao recusada."),
+  );
+
   revalidatePath("/app/notificacoes");
+  redirect(`/app/notificacoes?visitor_status=${status}&visitor_message=${message}`);
 }

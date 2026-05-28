@@ -28,7 +28,11 @@ function visitorRequestIdFromHref(href: string | null) {
   return new URLSearchParams(query).get("visitor_request_id") ?? "";
 }
 
-export default async function AccountNotificationsPage() {
+export default async function AccountNotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ visitor_status?: string; visitor_message?: string }>;
+}) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -51,6 +55,11 @@ export default async function AccountNotificationsPage() {
 
   const notifications = (data ?? []) as unknown as NotificationRow[];
   const unread = 0;
+  const feedback = await searchParams;
+  const visitorMessage = feedback.visitor_message
+    ? decodeURIComponent(feedback.visitor_message)
+    : null;
+  const visitorStatus = feedback.visitor_status === "success" ? "success" : "error";
 
   return (
     <div className="space-y-6">
@@ -68,6 +77,18 @@ export default async function AccountNotificationsPage() {
           </Button>
         </form>
       </div>
+
+      {visitorMessage ? (
+        <div
+          className={
+            visitorStatus === "success"
+              ? "rounded-lg border border-success/25 bg-success/10 p-4 text-sm font-semibold text-success"
+              : "rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm font-semibold text-destructive"
+          }
+        >
+          {visitorMessage}
+        </div>
+      ) : null}
 
       <Card className="p-6">
         <div className="flex items-center gap-3">
