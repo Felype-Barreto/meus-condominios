@@ -2,11 +2,18 @@
 
 export const publicQrRequestSchema = z.object({
   public_code: z.string().min(8, "Código público inválido.").max(80),
-  search: z.string().trim().min(2, "Digite pelo menos 2 caracteres.").max(80),
+  contact_target: z.enum(["apartment", "staff"]).default("apartment"),
+  search: z.string().trim().max(80).optional(),
   visitor_name: z.string().trim().max(120).optional(),
   visitor_phone: z.string().trim().max(40).optional(),
   message: z.string().trim().min(4, "Escreva uma mensagem curta.").max(500),
-});
+}).refine(
+  (value) => value.contact_target === "staff" || (value.search?.trim().length ?? 0) >= 2,
+  {
+    path: ["search"],
+    message: "Digite o bloco e apartamento, ou use a opção de contactar a guarita.",
+  },
+);
 
 export const publicQrSettingsSchema = z.object({
   condominium_id: z.string().uuid("Condomínio inválido."),

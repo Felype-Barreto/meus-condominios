@@ -1,14 +1,21 @@
 import { Bell } from "lucide-react";
 import { NotificationPreferencesCard } from "@/components/app/notification-preferences-card";
 import { WhatsAppConsentManager } from "@/components/app/whatsapp-consent-manager";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeWhatsAppCategories } from "@/lib/whatsapp/consent";
-import { updateNotificationPreferencesAction } from "./actions";
+import { markAlsoResidentAction, updateNotificationPreferencesAction } from "./actions";
 
 type PrivacySettings = {
   allow_public_contact?: boolean;
   allow_whatsapp_redirect?: boolean;
+};
+
+type ApartmentOption = {
+  id: string;
+  number: string;
+  blocks: { name: string | null } | null;
 };
 
 export default async function NotificationPreferencesPage({
@@ -22,14 +29,14 @@ export default async function NotificationPreferencesPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: membership }, { data: optIn }] = await Promise.all([
+  const [{ data: profile }, { data: membership }, { data: optIn }, { data: apartments }] = await Promise.all([
     user
       ? supabase.from("profiles").select("full_name,email,phone").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     user
       ? supabase
           .from("memberships")
-          .select("id, status, privacy_settings")
+          .select("id, role, status, apartment_id, privacy_settings")
           .eq("condominium_id", condoId)
           .eq("user_id", user.id)
           .maybeSingle()
@@ -42,10 +49,19 @@ export default async function NotificationPreferencesPage({
           .eq("user_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("apartments")
+      .select("id,number,blocks(name)")
+      .eq("condominium_id", condoId)
+      .order("number", { ascending: true }),
   ]);
 
   const privacy = (membership?.privacy_settings ?? {}) as PrivacySettings;
   const categories = normalizeWhatsAppCategories(optIn?.categories);
+  const canMarkApartment =
+    membership?.status === "active" &&
+    ["subscriber_admin", "admin", "syndic"].includes(String(membership.role));
+  const apartmentOptions = (apartments ?? []) as unknown as ApartmentOption[];
 
   if (!user || !membership) {
     return (
@@ -88,6 +104,32 @@ export default async function NotificationPreferencesPage({
               </div>
             </div>
           </Card>
+          {canMarkApartment ? (
+            <Card className="p-5">
+              <h2 className="text-lg font-semibold">Também sou morador</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Marque seu apartamento para receber solicitações do QR quando o visitante chamar sua unidade. Seu acesso de administrador ou síndico não muda.
+              </p>
+              <form action={markAlsoResidentAction} className="mt-4 grid gap-3">
+                <input type="hidden" name="condominium_id" value={condoId} />
+                <select
+                  name="apartment_id"
+                  defaultValue={membership.apartment_id ?? ""}
+                  className="h-11 rounded-lg border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  required
+                >
+                  <option value="">Selecione seu apartamento</option>
+                  {apartmentOptions.map((apartment) => (
+                    <option key={apartment.id} value={apartment.id}>
+                      {apartment.blocks?.name ? `${apartment.blocks.name} - ` : ""}
+                      {apartment.number}
+                    </option>
+                  ))}
+                </select>
+                <Button type="submit">Salvar meu apartamento</Button>
+              </form>
+            </Card>
+          ) : null}
         </div>
 
         <WhatsAppConsentManager

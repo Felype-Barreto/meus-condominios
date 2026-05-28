@@ -21,6 +21,13 @@ type NotificationRow = {
   condominiums: { name: string | null } | null;
 };
 
+function visitorRequestIdFromHref(href: string | null) {
+  if (!href) return "";
+
+  const query = href.includes("?") ? href.split("?")[1] : "";
+  return new URLSearchParams(query).get("visitor_request_id") ?? "";
+}
+
 export default async function AccountNotificationsPage() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -29,26 +36,16 @@ export default async function AccountNotificationsPage() {
 
   if (!user) redirect("/entrar");
 
-  const { data: memberships } = await supabase
-    .from("memberships")
-    .select("condominium_id")
+  await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
     .eq("user_id", user.id)
-    .eq("status", "active");
-
-  const condoIds = (memberships ?? []).map((membership) => membership.condominium_id);
-
-  if (condoIds.length) {
-    await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .in("condominium_id", condoIds)
-      .is("read_at", null);
-  }
+    .is("read_at", null);
 
   const { data } = await supabase
     .from("notifications")
     .select("id,title,body,href,type,read_at,created_at,condominiums(name)")
-    .in("condominium_id", condoIds.length ? condoIds : ["00000000-0000-0000-0000-000000000000"])
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(80);
 
@@ -110,7 +107,7 @@ export default async function AccountNotificationsPage() {
                       <input
                         type="hidden"
                         name="request_id"
-                        value={notification.href?.split("visitor_request_id=")[1] ?? ""}
+                        value={visitorRequestIdFromHref(notification.href)}
                       />
                       <input type="hidden" name="answer" value="approve" />
                       <Button type="submit" size="sm">
@@ -121,7 +118,7 @@ export default async function AccountNotificationsPage() {
                       <input
                         type="hidden"
                         name="request_id"
-                        value={notification.href?.split("visitor_request_id=")[1] ?? ""}
+                        value={visitorRequestIdFromHref(notification.href)}
                       />
                       <input type="hidden" name="answer" value="reject" />
                       <Button type="submit" size="sm" variant="outline">

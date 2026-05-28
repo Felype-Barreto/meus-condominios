@@ -11,19 +11,10 @@ export async function markAllNotificationsReadAction() {
 
   if (!user) throw new Error("Entre na sua conta.");
 
-  const { data: memberships } = await supabase
-    .from("memberships")
-    .select("condominium_id")
-    .eq("user_id", user.id)
-    .eq("status", "active");
-
-  const condoIds = (memberships ?? []).map((membership) => membership.condominium_id);
-  if (!condoIds.length) return;
-
   const { error } = await supabase
     .from("notifications")
     .update({ read_at: new Date().toISOString() })
-    .in("condominium_id", condoIds)
+    .eq("user_id", user.id)
     .is("read_at", null);
 
   if (error) throw new Error("Não foi possível marcar notificações como lidas.");

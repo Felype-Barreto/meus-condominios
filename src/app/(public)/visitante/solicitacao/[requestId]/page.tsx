@@ -22,7 +22,8 @@ export default async function VisitorRequestStatusPage({
     request_id: requestId,
   });
   const status = (data ?? {}) as RequestStatus;
-  const released = status.status === "contact_released" && status.whatsapp_url;
+  const released = status.status === "contact_released";
+  const releasedWithWhatsapp = released && status.whatsapp_url;
   const rejected = status.status === "rejected";
 
   return (
@@ -38,14 +39,16 @@ export default async function VisitorRequestStatusPage({
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           {!status.found
             ? "Solicitação não encontrada."
-            : released
+            : releasedWithWhatsapp
               ? "O responsável liberou o contato."
-              : rejected
-                ? "O responsável não liberou o contato no momento."
-                : "Aguarde alguns instantes. O responsável foi avisado."}
+              : released
+                ? "O responsável autorizou o contato, mas não há WhatsApp público liberado. Aguarde a orientação da portaria."
+                : rejected
+                  ? "O responsável não liberou o contato no momento."
+                  : "Aguarde alguns instantes. O responsável foi avisado."}
         </p>
 
-        {released ? (
+        {releasedWithWhatsapp ? (
           <Button asChild className="mt-6">
             <a href={status.whatsapp_url ?? "#"} target="_blank" rel="noreferrer">
               Abrir WhatsApp

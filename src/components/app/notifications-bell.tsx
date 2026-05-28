@@ -25,32 +25,20 @@ export function NotificationsBell() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data: memberships } = await supabase
-      .from("memberships")
-      .select("condominium_id")
-      .eq("user_id", auth.user.id)
-      .eq("status", "active");
-
-    const condoIds = (memberships ?? []).map((membership) => membership.condominium_id);
     const baseQuery = supabase
       .from("notifications")
       .select("id,title,body,href,read_at,created_at")
+      .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false })
       .limit(5);
 
     const countQuery = supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
+      .eq("user_id", auth.user.id)
       .is("read_at", null);
 
-    const [listResult, countResult] = await Promise.all([
-      condoIds.length
-        ? baseQuery.in("condominium_id", condoIds)
-        : baseQuery.eq("user_id", auth.user.id),
-      condoIds.length
-        ? countQuery.in("condominium_id", condoIds)
-        : countQuery.eq("user_id", auth.user.id),
-    ]);
+    const [listResult, countResult] = await Promise.all([baseQuery, countQuery]);
 
     setItems((listResult.data ?? []) as NotificationPreview[]);
     setUnread(countResult.count ?? 0);
@@ -61,10 +49,14 @@ export function NotificationsBell() {
     if (!unreadIds.length) return;
 
     const supabase = createSupabaseBrowserClient();
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+
     const now = new Date().toISOString();
     const { error } = await supabase
       .from("notifications")
       .update({ read_at: now })
+      .eq("user_id", auth.user.id)
       .in("id", unreadIds)
       .is("read_at", null);
 

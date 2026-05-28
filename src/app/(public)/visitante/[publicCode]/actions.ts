@@ -35,6 +35,7 @@ export async function submitPublicQrRequestAction(
 ): Promise<PublicQrRequestState> {
   const parsed = publicQrRequestSchema.safeParse({
     public_code: String(formData.get("public_code") ?? ""),
+    contact_target: String(formData.get("contact_target") ?? "apartment"),
     search: String(formData.get("search") ?? ""),
     visitor_name: String(formData.get("visitor_name") ?? ""),
     visitor_phone: String(formData.get("visitor_phone") ?? ""),
@@ -49,7 +50,10 @@ export async function submitPublicQrRequestAction(
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("submit_public_qr_request", {
     qr_public_code: parsed.data.public_code,
-    search_term: parsed.data.search,
+    search_term:
+      parsed.data.contact_target === "staff"
+        ? "__condo_responsible__"
+        : (parsed.data.search ?? ""),
     visitor_name_input: parsed.data.visitor_name ?? "",
     visitor_phone_input: parsed.data.visitor_phone ?? "",
     visitor_message: parsed.data.message,
@@ -68,6 +72,7 @@ export async function submitPublicQrRequestAction(
     status?: string;
     matched?: boolean;
     request_id?: string;
+    target?: string;
   } | null;
 
   if (result?.status === "rate_limited") {
@@ -90,7 +95,9 @@ export async function submitPublicQrRequestAction(
     requestId: result?.request_id,
     message:
       result?.matched === true
-        ? "Solicitação enviada. Aguarde alguns instantes; o responsável será avisado."
+        ? result?.target === "staff"
+          ? "Solicitação enviada para a guarita/responsável. Aguarde alguns instantes."
+          : "Solicitação enviada. O responsável do apartamento será avisado."
         : "Não foi possível concluir a solicitação. Verifique os dados ou fale com a portaria.",
   };
 }

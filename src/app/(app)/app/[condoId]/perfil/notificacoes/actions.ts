@@ -103,3 +103,28 @@ export async function updateNotificationPreferencesAction(formData: FormData) {
   revalidatePath(`/app/${condoId}/perfil/notificacoes`);
   revalidatePath(`/app/${condoId}/configuracoes/privacidade`);
 }
+
+export async function markAlsoResidentAction(formData: FormData) {
+  const condoId = String(formData.get("condominium_id") ?? "");
+  const apartmentId = String(formData.get("apartment_id") ?? "");
+  if (!condoId || !apartmentId) throw new Error("Selecione um apartamento.");
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Entre na sua conta.");
+
+  const { error } = await supabase.rpc("set_my_membership_apartment", {
+    condo_id: condoId,
+    apt_id: apartmentId,
+  });
+
+  if (error) {
+    throw new Error("Não foi possível marcar seu apartamento agora.");
+  }
+
+  revalidatePath(`/app/${condoId}/perfil/notificacoes`);
+  revalidatePath(`/app/${condoId}/moradores`);
+}
