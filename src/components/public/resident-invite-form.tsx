@@ -77,7 +77,7 @@ export function ResidentInviteForm({
       <div className="mt-5 rounded-lg border bg-muted p-4 text-sm">
         <p className="font-semibold">Cadastro simples por convite</p>
         <p className="mt-1 text-muted-foreground">
-          Use e-mail e senha para entrar depois na opção "Condomínio". Este cadastro não usa Gmail
+          Use e-mail e senha para entrar depois na opção &quot;Condomínio&quot;. Este cadastro não usa Gmail
           e não depende da conta administradora que possa estar salva no navegador.
         </p>
       </div>

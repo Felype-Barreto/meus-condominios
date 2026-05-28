@@ -4,7 +4,7 @@ import { Building2, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { CaptchaBox } from "@/components/public/captcha-box";
 import { GoogleAuthButton } from "@/components/public/google-auth-button";
 import { Button } from "@/components/ui/button";
@@ -66,11 +66,11 @@ export function AuthCard({
   const [error, setError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState("");
   const [accountMode, setAccountMode] = useState<"admin" | "condominium">("admin");
-  const [savedCondominiumCode, setSavedCondominiumCode] = useState("");
-
-  useEffect(() => {
-    setSavedCondominiumCode(window.localStorage.getItem("meuscondominios:last-condominium-code") ?? "");
-  }, []);
+  const [savedCondominiumCode] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : window.localStorage.getItem("meuscondominios:last-condominium-code") ?? "",
+  );
 
   const handleCaptchaToken = useCallback((token: string) => {
     setCaptchaToken(token);
