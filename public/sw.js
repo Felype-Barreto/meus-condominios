@@ -1,6 +1,5 @@
-const CACHE_NAME = "morai-public-v1";
+const CACHE_NAME = "meus-condominios-static-v2";
 const PUBLIC_ASSETS = [
-  "/offline.html",
   "/icons/morai-icon.svg",
   "/icons/morai-maskable.svg",
   "/file.svg",
@@ -41,13 +40,6 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET") return;
   if (url.pathname.startsWith("/api/")) return;
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match("/offline.html")),
-    );
-    return;
-  }
 
   if (!isSafePublicAsset(url)) return;
 

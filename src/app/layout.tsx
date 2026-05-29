@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://meuscondominios.site"),
   applicationName: "Meus Condomínios",
   verification: {
-    google: "AuMfEpCsy1czoDNDCxZOC7YpIcqbHs5EyweTXkpIgFA",
+    google: "iE86GuEqoMxhvHcQr2b6pMMEdSXd-07dbDAchPhqIuA",
   },
   appleWebApp: {
     capable: true,
